@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  username      String         @unique
+  password      String
+  name          String
+  principalId   String?
+  principalType PrincipalType? @default(GROUP)
+
+  role                       Role                @default(USER)
+  AssignmentRequestRequester AssignmentRequest[] @relation("requester")
+  AssignmentRequestResponder AssignmentRequest[] @relation("responder")
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  FreezeTime FreezeTime[]
+}
+
+model IdentityInstance {
+  id              String @id @default(cuid())
+  instanceArn     String
+  identityStoreId String
+}
+
+model AccountAssignment {
+  id String @id @default(cuid())
+
+  permissionSets       Json[]
+  principalId          String        @unique
+  principalType        PrincipalType @default(GROUP)
+  principalDisplayName String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
+
+model AccountAssignmentSnapshot {
+  id String @id @default(cuid())
+
+  permissionSets       Json[]
+  principalId          String        @unique
+  principalType        PrincipalType @default(GROUP)
+  principalDisplayName String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
+
+model AssignmentRequest {
+  id          String @id @default(cuid())
+  requester   User   @relation("requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requesterId String
+
+  responder   User?   @relation("responder", fields: [responderId], references: [id], onDelete: SetNull)
+  responderId String?
+
+  requestedAt DateTime  @default(now())
+  respondedAt DateTime?
+
+  permissionSetArns String[]
+  principalId       String
+  principalType     PrincipalType           @default(GROUP)
+  status            AssignmentRequestStatus @default(PENDING)
+  operation         AssignmentOperation     @default(ATTACH)
+
+  note      String?
+  startTime DateTime
+  endTime   DateTime
+}
+
+model FreezeTime {
+  id        String   @id @default(cuid())
+  startTime DateTime
+  endTime   DateTime
+  note      String?
+
+  creator   User?   @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  creatorId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PrincipalType {
+  USER
+  GROUP
+}
+
+enum AssignmentRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum AssignmentOperation {
+  ATTACH
+  DETACH
+}

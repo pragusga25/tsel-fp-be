@@ -1,0 +1,27 @@
+import { config as c } from 'dotenv';
+import {
+  object,
+  number,
+  integer,
+  minValue,
+  maxValue,
+  parse,
+  optional,
+  string,
+  minLength,
+  picklist,
+} from 'valibot';
+c();
+
+const envVarsSchema = object({
+  PORT: optional(number([integer(), minValue(1), maxValue(65535)]), 3000),
+  JWT_SECRET: string([minLength(8)]),
+  JWT_EXPIRES_IN: optional(picklist(['1h', '1d', '7d', '30d']), '1d'),
+  AWS_REGION: optional(string(), 'us-east-1'),
+  AWS_ACCESS_KEY_ID: string(),
+  AWS_SECRET_ACCESS_KEY: string(),
+  DATABASE_URL: string(),
+  NODE_ENV: optional(picklist(['development', 'production']), 'development'),
+});
+
+export const config = parse(envVarsSchema, process.env);

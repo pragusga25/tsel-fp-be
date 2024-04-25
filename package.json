@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "p:migrate": "npx prisma migrate dev",
+    "p:generate": "npx prisma generate",
+    "p:studio": "npx prisma studio"
+  },
+  "keywords": [],
+  "author": "Taufik Pragusga",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-identitystore": "^3.556.0",
+    "@aws-sdk/client-sso-admin": "^3.556.0",
+    "@aws-sdk/client-sts": "^3.556.0",
+    "@prisma/client": "^5.13.0",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "valibot": "^0.30.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.12.7",
+    "nodemon": "^3.1.0",
+    "prisma": "^5.13.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
