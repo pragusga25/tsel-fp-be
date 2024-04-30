@@ -34,3 +34,15 @@ export class MissingAccessTokenError extends HttpError {
     super(401, 'auth/missing-access-token');
   }
 }
+
+export class MissingRefreshTokenError extends HttpError {
+  constructor() {
+    super(401, 'auth/missing-refresh-token');
+  }
+}
+
+export class UnauthorizedError extends HttpError {
+  constructor() {
+    super(401, 'auth/unauthorized');
+  }
+}

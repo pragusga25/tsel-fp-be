@@ -158,8 +158,11 @@ export const listGroups = async () => {
   const { Groups, NextToken } = await identityStore.send(
     new ListGroupsCommand({
       IdentityStoreId: identityStoreId,
+      MaxResults: 99,
     })
   );
+
+  console.log('GROUPS 1: ', Groups);
 
   if (!Groups || Groups.length === 0) return [];
   let nextToken: string | undefined = undefined;
@@ -168,6 +171,7 @@ export const listGroups = async () => {
   groups.push(...Groups);
 
   while (nextToken) {
+    console.log('HELLO 1');
     const { Groups, NextToken } = await identityStore.send(
       new ListGroupsCommand({
         IdentityStoreId: identityStoreId,

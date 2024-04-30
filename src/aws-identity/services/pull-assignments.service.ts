@@ -1,12 +1,11 @@
 import { db } from '../../db';
-import { SynchronizationFailedError } from '../errors';
+import { PullFailedError } from '../errors';
 import { listAccountAssignments } from '../helper';
-import { SynchronizeAssignmentData } from '../validations';
+import { PullAssignmentData } from '../validations';
 
-export const synchronizeAssignmentsService = async ({
-  force,
-}: SynchronizeAssignmentData) => {
+export const pullAssignmentsService = async ({ force }: PullAssignmentData) => {
   const checkFreezeTime = !force;
+
   if (checkFreezeTime) {
     const now = new Date();
 
@@ -22,13 +21,14 @@ export const synchronizeAssignmentsService = async ({
     });
 
     if (todayFreezeTime) {
-      throw new SynchronizationFailedError([
+      throw new PullFailedError([
         'Cannot synchronize assignments during freeze time',
       ]);
     }
   }
 
   const data = await listAccountAssignments();
+  console.log('ListAccountAssignments: ', data);
 
   await db.$transaction(async (trx) => {
     await trx.accountAssignment.deleteMany();

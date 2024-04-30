@@ -9,6 +9,15 @@ export const loginService = async (data: LoginData) => {
 
   const user = await db.user.findUnique({
     where: { username },
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      role: true,
+      principalId: true,
+      principalType: true,
+      password: true,
+    },
   });
 
   if (!user) {
@@ -21,7 +30,9 @@ export const loginService = async (data: LoginData) => {
     throw new WrongCredentialsError();
   }
 
-  const accessToken = JwtUtil.generateToken(user);
+  const accessToken = JwtUtil.generateAccessToken(user);
+  const refreshToken = JwtUtil.generateRefreshToken(user);
+  const { password: hp, ...restUser } = user;
 
-  return { result: { accessToken } };
+  return { result: { accessToken, refreshToken, user: restUser } };
 };

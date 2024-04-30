@@ -58,8 +58,8 @@ export class AssignmentRequestNotPendingError extends HttpError {
   }
 }
 
-export class SynchronizationFailedError extends HttpError {
+export class PullFailedError extends HttpError {
   constructor(details: string[] = []) {
-    super(500, 'aws-identity/assignment-synchronization-failed', details);
+    super(500, 'aws-identity/assignment-pull-failed', details);
   }
 }

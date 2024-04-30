@@ -4,12 +4,20 @@ import { config as c } from 'dotenv';
 import { config } from './__shared__/config';
 import { routers } from './routers';
 import { errorMiddleware } from './__middlewares__';
-
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 c();
 
 const app: Express = express();
 const port = config.PORT;
 
+app.use(
+  cors({
+    origin: ['http://localhost:5173', 'localhost'],
+    credentials: true,
+  })
+);
+app.use(cookieParser());
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -23,11 +31,3 @@ app.use(errorMiddleware);
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
-
-if (config.NODE_ENV == 'development') {
-  process.on('uncaughtException', function (err) {
-    console.log(err);
-    //Send some notification about the error
-    process.exit(1);
-  });
-}

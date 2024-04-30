@@ -51,14 +51,47 @@ export const IdentityInstanceSchema = object({
   ]),
 });
 
-export const RequestAssignmentSchema = transform(
+export const RequestAssignmentSchema = object({
+  permissionSetArns: array(
+    PermissionSetArnSchema,
+    'The input must be an array of permission set ARNs.',
+    [minLength(1, 'Please select at least one permission set.')]
+  ),
+  note: optional(
+    string('Note must be a string.', [minLength(1, 'Please enter a note.')])
+  ),
+
+  operation: optional(
+    picklist(
+      Object.values(AssignmentOperation),
+      'Operation must be either ATTACH or DETACH.'
+    ),
+    AssignmentOperation.ATTACH
+  ),
+});
+
+const IdsSchema = array(
+  string('Id must be a string', [minLength(1)]),
+  'The input must be an array of ids.',
+  [minLength(1, 'Please input at least one id.')]
+);
+export const AcceptAssignmentSchema = object({
+  ids: IdsSchema,
+});
+
+export const PullAssignmentSchema = object({
+  force: optional(
+    boolean('Force must be a boolean value (true or false).'),
+    false
+  ),
+});
+
+export const CreateFreezeTimeSchema = transform(
   object(
     {
-      permissionSetArns: array(
-        PermissionSetArnSchema,
-        'The input must be an array of permission set ARNs.',
-        [minLength(1, 'Please select at least one permission set.')]
-      ),
+      creatorId: string('Creator ID must be a string.', [
+        minLength(1, 'Please enter the creator ID.'),
+      ]),
       note: optional(
         string('Note must be a string.', [minLength(1, 'Please enter a note.')])
       ),
@@ -80,13 +113,6 @@ export const RequestAssignmentSchema = transform(
           ),
         ]
       ),
-      operation: optional(
-        picklist(
-          Object.values(AssignmentOperation),
-          'Operation must be either ATTACH or DETACH.'
-        ),
-        AssignmentOperation.ATTACH
-      ),
     },
     [
       forward(
@@ -102,7 +128,7 @@ export const RequestAssignmentSchema = transform(
           ({ startTime }) =>
             new Date(startTime).getTime() >= new Date().getTime(),
           `Start time must be greater or equal to current date
-          (${new Date().toISOString().split('T')[0]})`
+      (${new Date().toISOString().split('T')[0]})`
         ),
         ['startTime']
       ),
@@ -115,26 +141,9 @@ export const RequestAssignmentSchema = transform(
   })
 );
 
-const IdsSchema = array(
-  string('Id must be a string', [minLength(1)]),
-  'The input must be an array of ids.',
-  [minLength(1, 'Please input at least one id.')]
-);
-export const AcceptAssignmentSchema = object({
-  ids: IdsSchema,
-});
-
-export const SynchronizeAssignmentSchema = object({
-  force: optional(
-    boolean('Force must be a boolean value (true or false).'),
-    false
-  ),
-});
-
 export type AccountAssignmentData = Output<typeof AccountAssignmentSchema>;
 export type IdentityInstanceData = Output<typeof IdentityInstanceSchema>;
 export type RequestAssignmentData = Output<typeof RequestAssignmentSchema>;
 export type AcceptAssignmentData = Output<typeof AcceptAssignmentSchema>;
-export type SynchronizeAssignmentData = Output<
-  typeof SynchronizeAssignmentSchema
->;
+export type PullAssignmentData = Output<typeof PullAssignmentSchema>;
+export type CreateFreezeTimeData = Output<typeof CreateFreezeTimeSchema>;

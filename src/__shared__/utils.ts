@@ -7,11 +7,18 @@ import {
   JsonWebTokenError,
   TokenExpiredError,
 } from 'jsonwebtoken';
+import { Response } from 'express';
 
 export class JwtUtil {
-  static generateToken(payload: IJwtPayload) {
+  static generateAccessToken(payload: IJwtPayload) {
     return sign(payload, config.JWT_SECRET, {
-      expiresIn: config.JWT_EXPIRES_IN,
+      expiresIn: 60 * 15, // 15 minutes
+    });
+  }
+
+  static generateRefreshToken(payload: IJwtPayload) {
+    return sign(payload, config.JWT_SECRET, {
+      expiresIn: '7d', // 7 days
     });
   }
 
@@ -22,6 +29,7 @@ export class JwtUtil {
       if (error instanceof JsonWebTokenError) {
         this.handleError(error);
       }
+      throw error;
     }
   }
 
@@ -31,5 +39,17 @@ export class JwtUtil {
     }
 
     throw error;
+  }
+}
+
+export class HttpUtil {
+  static attachRefreshToken(res: Response, refreshToken: string) {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
   }
 }
