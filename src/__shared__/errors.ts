@@ -23,6 +23,18 @@ export class TokenInvalidError extends HttpError {
   }
 }
 
+export class AccessTokenExpiredError extends HttpError {
+  constructor() {
+    super(401, 'auth/access-token-expired');
+  }
+}
+
+export class RefreshTokenExpiredError extends HttpError {
+  constructor() {
+    super(401, 'auth/refresh-token-expired');
+  }
+}
+
 export class TokenExpiredError extends HttpError {
   constructor() {
     super(401, 'auth/token-expired');

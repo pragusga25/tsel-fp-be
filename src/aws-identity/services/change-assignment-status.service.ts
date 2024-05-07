@@ -4,9 +4,10 @@ import {
   AssignmentRequestNotFoundError,
   AssignmentRequestNotPendingError,
 } from '../errors';
+import { PermissionSetsData } from '../validations';
 
 type Data = {
-  permissionSetArns: string[];
+  permissionSets: PermissionSetsData;
   principalId: string;
   principalType: PrincipalType;
 };
@@ -47,12 +48,12 @@ export const changeAssignmentStatusService = async (
         respondedAt: new Date(),
       },
       select: {
-        permissionSetArns: true,
+        permissionSets: true,
         principalId: true,
         principalType: true,
       },
     });
 
-    cb?.(data);
+    cb?.(data as Data);
   });
 };

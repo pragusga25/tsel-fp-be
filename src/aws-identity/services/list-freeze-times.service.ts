@@ -6,6 +6,8 @@ export const listFreezeTimesService = async () => {
       id: true,
       startTime: true,
       endTime: true,
+      permissionSets: true,
+      target: true,
       createdAt: true,
       updatedAt: true,
       note: true,

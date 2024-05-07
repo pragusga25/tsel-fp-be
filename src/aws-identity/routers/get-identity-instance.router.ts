@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { getIdentityInstanceService } from '../services';
-import { asyncErrorHandler } from '../../__middlewares__';
+import { adminOnlyMiddleware, asyncErrorHandler } from '../../__middlewares__';
 
 export const getIdentityInstanceRouter = Router();
 getIdentityInstanceRouter.get(
-  '/aws-identity/identity-instance.get',
+  '/identity-instance.get',
+  adminOnlyMiddleware,
   asyncErrorHandler(async (_req, res) => {
     const result = await getIdentityInstanceService();
 

@@ -1,5 +1,9 @@
 import { config } from './config';
-import { TokenExpiredError as Tex } from './errors';
+import {
+  TokenExpiredError as Tex,
+  AccessTokenExpiredError as ATex,
+  RefreshTokenExpiredError as RTex,
+} from './errors';
 import { IJwtPayload } from './interfaces';
 import {
   sign,
@@ -9,10 +13,11 @@ import {
 } from 'jsonwebtoken';
 import { Response } from 'express';
 
+export const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 export class JwtUtil {
   static generateAccessToken(payload: IJwtPayload) {
     return sign(payload, config.JWT_SECRET, {
-      expiresIn: 60 * 15, // 15 minutes
+      expiresIn: 60 * 30, // 30 minutes
     });
   }
 
@@ -22,20 +27,20 @@ export class JwtUtil {
     });
   }
 
-  static verifyToken(token: string) {
+  static verifyToken(token: string, isAccessToken = true) {
     try {
       return verify(token, config.JWT_SECRET) as IJwtPayload;
     } catch (error) {
       if (error instanceof JsonWebTokenError) {
-        this.handleError(error);
+        this.handleError(error, isAccessToken);
       }
       throw error;
     }
   }
 
-  private static handleError(error: JsonWebTokenError) {
+  private static handleError(error: JsonWebTokenError, isAccessToken = true) {
     if (error instanceof TokenExpiredError) {
-      throw new Tex();
+      throw isAccessToken ? new ATex() : new RTex();
     }
 
     throw error;

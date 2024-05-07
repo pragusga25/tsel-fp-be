@@ -63,3 +63,9 @@ export class PullFailedError extends HttpError {
     super(500, 'aws-identity/assignment-pull-failed', details);
   }
 }
+
+export class FreezeTimeConflictError extends HttpError {
+  constructor(details: string[] = []) {
+    super(400, 'aws-identity/freeze-time-conflict', details);
+  }
+}

@@ -102,6 +102,34 @@ export const listAccountAssignmentsforPrincipal = async (
   }));
 };
 
+export const describePermissionSetsInPrincipal = async (
+  principalId: string,
+  principalType: 'USER' | 'GROUP' = 'GROUP'
+) => {
+  const accountAssignments = await listAccountAssignmentsforPrincipal(
+    principalId,
+    principalType
+  );
+  const accountAssignmentsFiltered = accountAssignments.filter(
+    (assg) =>
+      assg.principalId === principalId &&
+      assg.principalType === principalType &&
+      !!assg.permissionSetArn
+  );
+
+  const permissionSetArns = accountAssignmentsFiltered.map(
+    (assg) => assg.permissionSetArn
+  ) as string[];
+
+  const permissionSetsPromises = permissionSetArns.map((permissionSetArn) =>
+    describePermissionSet(permissionSetArn)
+  );
+
+  const permissionSets = await Promise.all(permissionSetsPromises);
+
+  return permissionSets;
+};
+
 export const listInstances = async () => {
   const instances: InstanceMetadata[] = [];
   const { Instances, NextToken } = await ssoAdmin.send(
@@ -162,8 +190,6 @@ export const listGroups = async () => {
     })
   );
 
-  console.log('GROUPS 1: ', Groups);
-
   if (!Groups || Groups.length === 0) return [];
   let nextToken: string | undefined = undefined;
   nextToken = NextToken;
@@ -171,7 +197,6 @@ export const listGroups = async () => {
   groups.push(...Groups);
 
   while (nextToken) {
-    console.log('HELLO 1');
     const { Groups, NextToken } = await identityStore.send(
       new ListGroupsCommand({
         IdentityStoreId: identityStoreId,

@@ -69,15 +69,13 @@ model AssignmentRequest {
   requestedAt DateTime  @default(now())
   respondedAt DateTime?
 
-  permissionSetArns String[]
-  principalId       String
-  principalType     PrincipalType           @default(GROUP)
-  status            AssignmentRequestStatus @default(PENDING)
-  operation         AssignmentOperation     @default(ATTACH)
+  permissionSets Json[]
+  principalId    String
+  principalType  PrincipalType           @default(GROUP)
+  status         AssignmentRequestStatus @default(PENDING)
+  operation      AssignmentOperation     @default(ATTACH)
 
-  note      String?
-  startTime DateTime
-  endTime   DateTime
+  note String?
 }
 
 model FreezeTime {
@@ -86,11 +84,20 @@ model FreezeTime {
   endTime   DateTime
   note      String?
 
+  target         FreezeTimeTarget @default(ALL)
+  permissionSets Json[]
+
   creator   User?   @relation(fields: [creatorId], references: [id], onDelete: SetNull)
   creatorId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum FreezeTimeTarget {
+  USER
+  GROUP
+  ALL
 }
 
 enum Role {

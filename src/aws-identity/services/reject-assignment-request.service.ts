@@ -1,7 +1,7 @@
 import { AssignmentRequestStatus } from '@prisma/client';
 import { changeAssignmentStatusService } from './change-assignment-status.service';
 
-export const rejectAssignmentService = async (
+export const rejectAssignmentRequestService = async (
   responderId: string,
   id: string
 ) => {

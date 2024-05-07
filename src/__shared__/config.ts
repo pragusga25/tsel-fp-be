@@ -22,6 +22,9 @@ const envVarsSchema = object({
   AWS_SECRET_ACCESS_KEY: string(),
   DATABASE_URL: string(),
   NODE_ENV: optional(picklist(['development', 'production']), 'development'),
+  API_KEY: string('API key must be a string', [
+    minLength(8, 'API key must be at least 8 characters long'),
+  ]),
 });
 
 export const config = parse(envVarsSchema, process.env);

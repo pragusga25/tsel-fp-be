@@ -1,4 +1,9 @@
-import { AssignmentOperation, PrincipalType } from '@prisma/client';
+import {
+  AssignmentOperation,
+  FreezeTimeTarget,
+  PrincipalType,
+  Role,
+} from '@prisma/client';
 import {
   object,
   string,
@@ -12,6 +17,7 @@ import {
   forward,
   custom,
   transform,
+  maxLength,
 } from 'valibot';
 
 export const PrincipalIdSchema = string('PrincipalId must be a string.', [
@@ -37,6 +43,22 @@ export const PermissionSetArnSchema = string(
   [minLength(1, 'Please enter the permission set ARN.')]
 );
 
+export const PermissionSetNameSchema = string(
+  'Permission set name must be a string.',
+  [minLength(1, 'Please enter the permission set name.')]
+);
+
+export const PermissionSetSchema = object({
+  arn: PermissionSetArnSchema,
+  name: optional(PermissionSetNameSchema),
+});
+
+export const PermissionSetsSchema = array(
+  PermissionSetSchema,
+  'The input must be an array.',
+  [minLength(1, 'Please input at least one permission set.')]
+);
+
 export const AccountAssignmentSchema = object({
   instanceArn: InstanceArnSchema,
   permissionSetArn: PermissionSetArnSchema,
@@ -52,11 +74,7 @@ export const IdentityInstanceSchema = object({
 });
 
 export const RequestAssignmentSchema = object({
-  permissionSetArns: array(
-    PermissionSetArnSchema,
-    'The input must be an array of permission set ARNs.',
-    [minLength(1, 'Please select at least one permission set.')]
-  ),
+  permissionSets: PermissionSetsSchema,
   note: optional(
     string('Note must be a string.', [minLength(1, 'Please enter a note.')])
   ),
@@ -75,7 +93,14 @@ const IdsSchema = array(
   'The input must be an array of ids.',
   [minLength(1, 'Please input at least one id.')]
 );
-export const AcceptAssignmentSchema = object({
+export const AcceptAssignmentRequestsSchema = object({
+  ids: IdsSchema,
+  operation: picklist(
+    Object.values(AssignmentOperation),
+    'Operation must be either ATTACH or DETACH.'
+  ),
+});
+export const RejectAssignmentRequestsSchema = object({
   ids: IdsSchema,
 });
 
@@ -89,12 +114,17 @@ export const PullAssignmentSchema = object({
 export const CreateFreezeTimeSchema = transform(
   object(
     {
-      creatorId: string('Creator ID must be a string.', [
-        minLength(1, 'Please enter the creator ID.'),
-      ]),
+      // creatorId: string('Creator ID must be a string.', [
+      //   minLength(1, 'Please enter the creator ID.'),
+      // ]),
       note: optional(
-        string('Note must be a string.', [minLength(1, 'Please enter a note.')])
+        string('Note must be a string.', [
+          minLength(1, 'Please enter a note.'),
+          maxLength(32, 'Note must be less than 32 characters.'),
+        ])
       ),
+      target: picklist(Object.values(FreezeTimeTarget), 'Invalid target.'),
+      permissionSets: PermissionSetsSchema,
       startTime: string(
         'Please enter a valid start time in the format yyyy-mm-dd.',
         [
@@ -126,9 +156,11 @@ export const CreateFreezeTimeSchema = transform(
       forward(
         custom(
           ({ startTime }) =>
-            new Date(startTime).getTime() >= new Date().getTime(),
-          `Start time must be greater or equal to current date
-      (${new Date().toISOString().split('T')[0]})`
+            new Date(startTime).getTime() >=
+            new Date(new Date().toDateString()).getTime(),
+          `Start time must be greater or equal to current date (${
+            new Date().toISOString().split('T')[0]
+          })`
         ),
         ['startTime']
       ),
@@ -141,9 +173,32 @@ export const CreateFreezeTimeSchema = transform(
   })
 );
 
+export const DeleteFreezeTimesSchema = object({
+  ids: IdsSchema,
+});
+
+export const DeleteAssignmentRequestsSchema = object({
+  ids: IdsSchema,
+});
+
 export type AccountAssignmentData = Output<typeof AccountAssignmentSchema>;
 export type IdentityInstanceData = Output<typeof IdentityInstanceSchema>;
 export type RequestAssignmentData = Output<typeof RequestAssignmentSchema>;
-export type AcceptAssignmentData = Output<typeof AcceptAssignmentSchema>;
+export type AcceptAssignmentRequetsData = Output<
+  typeof AcceptAssignmentRequestsSchema
+>;
+export type RejectAssignmentRequetsData = Output<
+  typeof RejectAssignmentRequestsSchema
+>;
 export type PullAssignmentData = Output<typeof PullAssignmentSchema>;
-export type CreateFreezeTimeData = Output<typeof CreateFreezeTimeSchema>;
+export type CreateFreezeTimeData = Output<typeof CreateFreezeTimeSchema> & {
+  creatorId: string;
+};
+export type PermissionSetsData = Output<typeof PermissionSetsSchema>;
+export type DeleteFreezeTimesData = Output<typeof DeleteFreezeTimesSchema>;
+export type DeleteAssignmentRequestsData = Output<
+  typeof DeleteAssignmentRequestsSchema
+> & {
+  userId: string;
+  role: Role;
+};

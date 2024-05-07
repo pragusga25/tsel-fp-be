@@ -28,7 +28,6 @@ export const pullAssignmentsService = async ({ force }: PullAssignmentData) => {
   }
 
   const data = await listAccountAssignments();
-  console.log('ListAccountAssignments: ', data);
 
   await db.$transaction(async (trx) => {
     await trx.accountAssignment.deleteMany();
