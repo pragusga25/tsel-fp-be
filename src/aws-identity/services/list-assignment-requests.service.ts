@@ -13,6 +13,9 @@ export const listAssignmentRequestsService = async () => {
         select: {
           name: true,
           username: true,
+          principalId: true,
+          principalType: true,
+          principalDisplayName: true,
         },
       },
       responder: {

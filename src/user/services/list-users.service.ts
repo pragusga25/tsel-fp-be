@@ -11,6 +11,7 @@ export const listUsersService = async () => {
       updatedAt: true,
       principalId: true,
       principalType: true,
+      principalDisplayName: true,
     },
   });
 

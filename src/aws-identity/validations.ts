@@ -1,5 +1,6 @@
 import {
   AssignmentOperation,
+  AssignmentRequestStatus,
   FreezeTimeTarget,
   PrincipalType,
   Role,
@@ -181,9 +182,76 @@ export const DeleteAssignmentRequestsSchema = object({
   ids: IdsSchema,
 });
 
+export const DeleteAccountAssignmentSchema = object({
+  id: string('Id must be a string', [minLength(1, 'Please enter an id.')]),
+});
+
+export const CountAssignmentRequestsSchema = object({
+  status: optional(
+    picklist(
+      Object.values(AssignmentRequestStatus),
+      'Status must be either PENDING, ACCEPTED or REJECTED.'
+    )
+  ),
+});
+
+export const EditAccountAssignmentSchema = object({
+  id: string('Id must be a string', [minLength(1)]),
+  permissionSets: PermissionSetsSchema,
+});
+
+export const PushOneAssignmentSchema = object({
+  id: string('Id must be a string', [minLength(1)]),
+});
+
+export const CreatePrincipalSchema = object({
+  displayName: string('Principal must be a string', [
+    minLength(1, 'Please enter a name.'),
+  ]),
+  type: PrincipalTypeSchema,
+  username: optional(
+    string('Principal must be a string', [minLength(1, 'Please enter a name.')])
+  ),
+  givenName: optional(
+    string('Principal must be a string', [minLength(1, 'Please enter a name.')])
+  ),
+  familyName: optional(
+    string('Principal must be a string', [minLength(1, 'Please enter a name.')])
+  ),
+});
+
+export const DeletePrincipalSchema = object({
+  id: string('Principal must be a string', [
+    minLength(1, 'Please enter a name.'),
+  ]),
+  type: PrincipalTypeSchema,
+});
+
+export const UpdatePrincipalSchema = object({
+  id: string('Principal must be a string', [
+    minLength(1, 'Please enter a name.'),
+  ]),
+  type: PrincipalTypeSchema,
+  displayName: string('Principal must be a string', [
+    minLength(1, 'Please enter a name.'),
+  ]),
+});
+
+export type DeleteAccountAssignmentData = Output<
+  typeof DeleteAccountAssignmentSchema
+>;
+export type UpdatePrincipalData = Output<typeof UpdatePrincipalSchema>;
+export type CreatePrincipalData = Output<typeof CreatePrincipalSchema>;
+export type DeletePrincipalData = Output<typeof DeletePrincipalSchema>;
+export type PushOneAssignmentData = Output<typeof PushOneAssignmentSchema>;
+export type EditAccountAssignmentData = Output<
+  typeof EditAccountAssignmentSchema
+>;
 export type AccountAssignmentData = Output<typeof AccountAssignmentSchema>;
 export type IdentityInstanceData = Output<typeof IdentityInstanceSchema>;
-export type RequestAssignmentData = Output<typeof RequestAssignmentSchema>;
+export type RequestAssignmentData = Output<typeof RequestAssignmentSchema> & {
+  requesterId: string;
+};
 export type AcceptAssignmentRequetsData = Output<
   typeof AcceptAssignmentRequestsSchema
 >;
@@ -202,3 +270,7 @@ export type DeleteAssignmentRequestsData = Output<
   userId: string;
   role: Role;
 };
+
+export type CountAssignmentRequestsData = Output<
+  typeof CountAssignmentRequestsSchema
+>;

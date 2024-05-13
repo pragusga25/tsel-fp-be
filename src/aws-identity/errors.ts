@@ -33,6 +33,14 @@ export class AccountAssignmentAlreadyExistsError extends HttpError {
   }
 }
 
+export class AccountAssignmentNotFoundError extends HttpError {
+  constructor() {
+    super(404, 'aws-identity/account-assignment-not-found', [
+      'Account assignment not found. Make sure the assignment exists.',
+    ]);
+  }
+}
+
 export class PermissionSetNotFoundError extends HttpError {
   constructor() {
     super(404, 'aws-identity/permission-set-not-found', [
@@ -67,5 +75,11 @@ export class PullFailedError extends HttpError {
 export class FreezeTimeConflictError extends HttpError {
   constructor(details: string[] = []) {
     super(400, 'aws-identity/freeze-time-conflict', details);
+  }
+}
+
+export class PrincipalConflictError extends HttpError {
+  constructor(details: string[] = []) {
+    super(400, 'aws-identity/principal-conflict', details);
   }
 }

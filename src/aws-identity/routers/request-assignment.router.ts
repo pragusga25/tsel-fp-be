@@ -15,11 +15,10 @@ requestAssignmentRouter.post(
   validationBodyMiddleware(RequestAssignmentSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
     const payload = req.body;
-    const result = await requestAssignmentService(
-      req.user!.id,
-      req.user!.principalId!,
-      payload
-    );
+    const result = await requestAssignmentService({
+      ...payload,
+      requesterId: req.user!.id,
+    });
     res.status(200).send({
       ok: true,
       ...result,

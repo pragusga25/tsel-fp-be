@@ -38,7 +38,7 @@ export const changeAssignmentStatusService = async (
       ]);
     }
 
-    const data = await trx.assignmentRequest.update({
+    const res = await trx.assignmentRequest.update({
       where: {
         id,
       },
@@ -49,10 +49,20 @@ export const changeAssignmentStatusService = async (
       },
       select: {
         permissionSets: true,
-        principalId: true,
-        principalType: true,
+        requester: {
+          select: {
+            principalId: true,
+            principalType: true,
+          },
+        },
       },
     });
+
+    const data = {
+      permissionSets: res.permissionSets,
+      principalId: res.requester.principalId,
+      principalType: res.requester.principalType,
+    };
 
     cb?.(data as Data);
   });

@@ -19,6 +19,14 @@ import { freezeAssignmentsRouter } from './freeze-assignments.router';
 import { schedulePushAssignmentsRouter } from './schedule-push-assignments.router';
 import { deleteFreezeTimesRouter } from './delete-freeze-times.router';
 import { deleteAssignmentRequestsRouter } from './delete-assignment-requests.router';
+import { countAssignmentRequestsRouter } from './count-assignment-requests.router';
+import { editAccountAssignmentRouter } from './edit-account-assignment.router';
+import { pushOneAssignmentRouter } from './push-one-assignment.router';
+import { createPrincipalRouter } from './create-principal.router';
+import { deletePrincipalRouter } from './delete-principal.router';
+import { updatePrincipalRouter } from './update-principal.router';
+import { deleteAssignmentRouter } from './delete-assignment.router';
+import { listPrincipalsNotInDbRouter } from './list-principals-not-in-db.router';
 
 export const awsIdentityRouters = [
   listGroupsRouter,
@@ -42,4 +50,12 @@ export const awsIdentityRouters = [
   freezeAssignmentsRouter,
   deleteFreezeTimesRouter,
   deleteAssignmentRequestsRouter,
+  countAssignmentRequestsRouter,
+  editAccountAssignmentRouter,
+  pushOneAssignmentRouter,
+  createPrincipalRouter,
+  deletePrincipalRouter,
+  updatePrincipalRouter,
+  deleteAssignmentRouter,
+  listPrincipalsNotInDbRouter,
 ];

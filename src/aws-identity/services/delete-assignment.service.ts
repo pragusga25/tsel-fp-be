@@ -1,40 +1,50 @@
 import { db } from '../../db';
-import { AccountIdNotFoundError, OperationFailedError } from '../errors';
-import { getAccountId, ssoAdmin } from '../helper';
-import { AccountAssignmentData } from '../validations';
+import { AccountAssignmentNotFoundError } from '../errors';
 import {
-  StatusValues,
-  DeleteAccountAssignmentCommand,
-} from '@aws-sdk/client-sso-admin';
+  deleteAccountAssignment,
+  describePermissionSetsInPrincipal,
+} from '../helper';
+import { DeleteAccountAssignmentData } from '../validations';
 
-export const deleteAssignmentService = async (data: AccountAssignmentData) => {
-  // const targetId = await getAccountId();
-  // if (!targetId) throw new AccountIdNotFoundError();
-  // const { instanceArn, permissionSetArn, principalId, principalType } = data;
-  // const input = {
-  //   TargetId: targetId,
-  //   TargetType: 'AWS_ACCOUNT' as const,
-  //   InstanceArn: instanceArn,
-  //   PermissionSetArn: permissionSetArn,
-  //   PrincipalId: principalId,
-  //   PrincipalType: principalType,
-  // };
-  // const command = new DeleteAccountAssignmentCommand(input);
-  // const response = await ssoAdmin.send(command);
-  // if (response.AccountAssignmentDeletionStatus?.Status == StatusValues.FAILED) {
-  //   throw new OperationFailedError();
-  // }
-  // const result = await db.accountAssignment.delete({
-  //   where: {
-  //     instanceArn_permissionSetArn_principalId: {
-  //       instanceArn,
-  //       permissionSetArn,
-  //       principalId,
-  //     },
-  //   },
-  //   select: {
-  //     id: true,
-  //   },
-  // });
-  // return result;
+export const deleteAssignmentService = async ({
+  id,
+}: DeleteAccountAssignmentData) => {
+  const assignment = await db.accountAssignment.findUnique({
+    where: { id },
+    select: {
+      principalId: true,
+      principalType: true,
+    },
+  });
+
+  if (!assignment) {
+    throw new AccountAssignmentNotFoundError();
+  }
+
+  await db.$transaction(async (trx) => {
+    const { principalId, principalType } = assignment;
+
+    const permissionSetsFromAws = await describePermissionSetsInPrincipal(
+      principalId,
+      principalType
+    );
+
+    const permissionSetArnsFromAws = permissionSetsFromAws.map(
+      (ps) => ps!.permissionSetArn
+    ) as string[];
+
+    const removePromises = permissionSetArnsFromAws.map((ps) =>
+      deleteAccountAssignment({
+        permissionSetArn: ps,
+        principalId,
+        principalType,
+      })
+    );
+
+    await Promise.all(removePromises);
+
+    await trx.accountAssignment.delete({
+      where: { id },
+    });
+  });
 };

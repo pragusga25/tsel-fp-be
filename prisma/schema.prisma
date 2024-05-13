@@ -14,12 +14,13 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  username      String         @unique
-  password      String
-  name          String
-  principalId   String?
-  principalType PrincipalType? @default(GROUP)
+  id                   String         @id @default(cuid())
+  username             String         @unique
+  password             String
+  name                 String
+  principalId          String?
+  principalDisplayName String?
+  principalType        PrincipalType? @default(GROUP)
 
   role                       Role                @default(USER)
   AssignmentRequestRequester AssignmentRequest[] @relation("requester")
@@ -45,6 +46,7 @@ model AccountAssignment {
   principalDisplayName String?
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
+  lastPushedAt         DateTime?
 }
 
 model AccountAssignmentSnapshot {
@@ -70,8 +72,6 @@ model AssignmentRequest {
   respondedAt DateTime?
 
   permissionSets Json[]
-  principalId    String
-  principalType  PrincipalType           @default(GROUP)
   status         AssignmentRequestStatus @default(PENDING)
   operation      AssignmentOperation     @default(ATTACH)
 

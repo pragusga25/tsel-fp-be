@@ -87,35 +87,15 @@ export const pushAssignmentsService = async () => {
     });
   }
 
-  // const deleteAccountAssignmentsPromises = awsAssignmentsFiltered.map((aaf) => {
-  //   const permissionSetArns = aaf.permissionSets.map((ps) => ps.arn);
-  //   return permissionSetArns.map((psa) => {
-  //     return deleteAccountAssignment({
-  //       permissionSetArn: psa,
-  //       principalId: aaf.principalId,
-  //       principalType: aaf.principalType,
-  //     });
-  //   });
-  // });
-
-  // const createAccountAssignmentsPromises = dbAssignments.map((da) => {
-  //   const permissionSetArns = da.permissionSets.map(
-  //     (ps) => (ps as { arn: string }).arn!
-  //   );
-
-  //   return permissionSetArns.map((psa) => {
-  //     return createAccountAssignment({
-  //       permissionSetArn: psa,
-  //       principalId: da.principalId,
-  //       principalType: da.principalType,
-  //     });
-  //   });
-  // });
-
-  // await Promise.all(deleteAccountAssignmentsPromises.flat());
-  // await Promise.all(createAccountAssignmentsPromises.flat());
   await Promise.all([
     ...deleteAccountAssignmentsPromises,
     ...createAccountAssignmentsPromises,
   ]);
+
+  await db.accountAssignment.updateMany({
+    data: {
+      lastPushedAt: new Date(),
+    },
+    where: {},
+  });
 };

@@ -3,11 +3,17 @@ import { HttpError } from '../__shared__/errors';
 
 export const errorMiddleware = (
   err: HttpError,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ) => {
-  console.error(err);
+  console.info({
+    path: req.path,
+    method: req.method,
+    status: err.status,
+    error: err,
+  });
+
   const status = err.status || 500;
 
   const response = err.response ?? {

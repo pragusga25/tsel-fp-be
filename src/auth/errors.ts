@@ -11,3 +11,11 @@ export class UsernameTakenError extends HttpError {
     super(404, 'auth/username-taken', ['Username already taken']);
   }
 }
+
+export class PrincipalRequiredError extends HttpError {
+  constructor() {
+    super(400, 'auth/principal-required', [
+      'PrincipalId and PrincipalType are required for role USER',
+    ]);
+  }
+}

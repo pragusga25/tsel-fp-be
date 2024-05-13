@@ -28,6 +28,10 @@ app.get('/', (_req: Request, res: Response) => {
 
 app.use('/api/v1', ...routers);
 app.use(errorMiddleware);
-app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
-});
+try {
+  app.listen(port, () => {
+    console.log(`[server]: Server is running at http://localhost:${port}`);
+  });
+} catch (e) {
+  console.error(e);
+}

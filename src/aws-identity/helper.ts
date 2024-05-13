@@ -12,10 +12,18 @@ import {
 import { config } from '../__shared__/config';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import {
+  CreateGroupCommand,
+  CreateUserCommand,
+  DeleteGroupCommand,
+  DeleteUserCommand,
+  DescribeGroupCommand,
+  DescribeUserCommand,
   Group,
   IdentitystoreClient,
   ListGroupsCommand,
   ListUsersCommand,
+  UpdateGroupCommand,
+  UpdateUserCommand,
   User,
 } from '@aws-sdk/client-identitystore';
 import {
@@ -25,6 +33,12 @@ import {
 } from './errors';
 import { db } from '../db';
 import { PrincipalType } from '@prisma/client';
+import { instance } from 'valibot';
+import {
+  CreatePrincipalData,
+  DeletePrincipalData,
+  UpdatePrincipalData,
+} from './validations';
 
 const credentials = {
   accessKeyId: config.AWS_ACCESS_KEY_ID,
@@ -48,6 +62,11 @@ export const getIdentityInstanceOrThrow = async () => {
   const res = await db.identityInstance.findFirst({});
   if (!res) {
     throw new IdentityInstanceNotFoundError();
+    // return {
+    //   id: '-',
+    //   instanceArn: '-',
+    //   identityStoreId: '-',
+    // };
   }
 
   return res;
@@ -404,6 +423,7 @@ export const listAccountAssignments = async () => {
 
   return data.map(({ permissionSetArns, ...d }) => d);
 };
+
 type CreateAccountAssignmentData = {
   permissionSetArn: string;
   principalId: string;
@@ -456,5 +476,132 @@ export const deleteAccountAssignment = async (
     throw new OperationFailedError([
       AccountAssignmentDeletionStatus.FailureReason,
     ]);
+  }
+};
+
+export const describeGroup = async (groupId: string) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+
+  const { GroupId, DisplayName } = await identityStore.send(
+    new DescribeGroupCommand({
+      GroupId: groupId,
+      IdentityStoreId: identityStoreId,
+    })
+  );
+
+  return {
+    id: GroupId ?? '-',
+    displayName: DisplayName ?? null,
+    principalType: PrincipalType.GROUP,
+  };
+};
+
+export const describeUser = async (userId: string) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+
+  const { UserId, DisplayName } = await identityStore.send(
+    new DescribeUserCommand({
+      UserId: userId,
+      IdentityStoreId: identityStoreId,
+    })
+  );
+
+  return {
+    id: UserId ?? '-',
+    displayName: DisplayName ?? null,
+    principalType: PrincipalType.GROUP,
+  };
+};
+
+export const createPrincipal = async ({
+  displayName,
+  type,
+  username,
+  familyName,
+  givenName,
+}: CreatePrincipalData) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+
+  let id: string | undefined = undefined;
+  const input = {
+    DisplayName: displayName,
+    IdentityStoreId: identityStoreId,
+  };
+
+  if (type === PrincipalType.GROUP) {
+    const { GroupId } = await identityStore.send(new CreateGroupCommand(input));
+    id = GroupId;
+  } else {
+    const { UserId } = await identityStore.send(
+      new CreateUserCommand({
+        ...input,
+        UserName: username,
+        Name: {
+          FamilyName: familyName,
+          GivenName: givenName,
+        },
+      })
+    );
+    id = UserId;
+  }
+
+  return {
+    id,
+  };
+};
+
+export const deletePrincipal = async ({ id, type }: DeletePrincipalData) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+  const input = {
+    IdentityStoreId: identityStoreId,
+  };
+
+  if (type === PrincipalType.GROUP) {
+    await identityStore.send(
+      new DeleteGroupCommand({
+        ...input,
+        GroupId: id,
+      })
+    );
+  } else {
+    await identityStore.send(
+      new DeleteUserCommand({
+        ...input,
+        UserId: id,
+      })
+    );
+  }
+};
+
+export const updatePrincipal = async ({
+  id,
+  displayName,
+  type,
+}: UpdatePrincipalData) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+  const input = {
+    IdentityStoreId: identityStoreId,
+    Operations: [
+      {
+        AttributePath: 'DisplayName',
+        AttributeValue: displayName,
+      },
+    ],
+  };
+
+  if (type === PrincipalType.GROUP) {
+    await identityStore.send(
+      new UpdateGroupCommand({
+        GroupId: id,
+        ...input,
+      })
+    );
+  } else {
+    await identityStore.send(
+      new UpdateUserCommand({
+        UserId: id,
+        ...input,
+      })
+    );
   }
 };

@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { listPermissionSetsService } from '../services';
+import { asyncErrorHandler } from '../../__middlewares__';
 
 export const listPermissionSetsRouter = Router();
-listPermissionSetsRouter.get('/permission-sets.list', async (_req, res) => {
-  const result = await listPermissionSetsService();
+listPermissionSetsRouter.get(
+  '/permission-sets.list',
 
-  res.status(200).send({
-    ok: true,
-    ...result,
-  });
-});
+  asyncErrorHandler(async (_req, res) => {
+    const result = await listPermissionSetsService();
+
+    res.status(200).send({
+      ok: true,
+      ...result,
+    });
+  })
+);
