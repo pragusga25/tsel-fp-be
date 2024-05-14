@@ -8,7 +8,7 @@ import cookieParser from 'cookie-parser';
 c();
 
 const app: Express = express();
-const port = process.env.PORT || 8080;
+const port = process.env.$PORT || 8080;
 
 app.use(
   cors({
