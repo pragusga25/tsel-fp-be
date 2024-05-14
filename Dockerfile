@@ -11,6 +11,7 @@ RUN npm install
 
 COPY . .
 
+RUN npx prisma generate
 # Build dist
 RUN npm run build
 
