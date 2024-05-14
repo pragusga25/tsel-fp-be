@@ -14,7 +14,7 @@ import {
 c();
 
 const envVarsSchema = object({
-  PORT: optional(number([integer(), minValue(1), maxValue(65535)]), 3000),
+  PORT: optional(number([integer(), minValue(1), maxValue(65535)]), 8080),
   JWT_SECRET: string([minLength(8)]),
   JWT_EXPIRES_IN: optional(picklist(['1h', '1d', '7d', '30d']), '1d'),
   AWS_REGION: optional(string(), 'us-east-1'),
