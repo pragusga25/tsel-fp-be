@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  be:
+    container_name: tsel-be
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    depends_on:
+      - db
+    restart: unless-stopped
+    env_file:
+      - .env
+
   db:
     container_name: tsel-db
     image: postgres:latest
