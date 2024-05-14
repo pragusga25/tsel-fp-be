@@ -9,6 +9,7 @@ c();
 
 const app: Express = express();
 const port = process.env.$PORT || 8080;
+console.log('process.env: ', process.env);
 
 app.use(
   cors({
