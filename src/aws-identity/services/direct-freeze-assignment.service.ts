@@ -9,23 +9,12 @@ import {
   listPrincipals,
   listUsers,
 } from '../helper';
+import { CreateFreezeTimeData } from '../validations';
 
-export const freezeAssignmentsService = async () => {
-  const currentDate = new Date().toISOString().split('T')[0];
-  const now = new Date(currentDate);
-
-  const assignmentPromise = db.accountAssignment.findFirst();
-
-  const freezeTimePromise = db.freezeTime.findFirst({
-    where: {
-      AND: [{ startTime: { lte: now } }, { endTime: { gt: now } }],
-    },
-  });
-
-  const [assignment, freezeTime] = await Promise.all([
-    assignmentPromise,
-    freezeTimePromise,
-  ]);
+export const directFreezeAssignmentsService = async (
+  data: CreateFreezeTimeData
+) => {
+  const assignment = await db.accountAssignment.findFirst();
 
   if (!assignment) {
     throw new OperationFailedError([
@@ -33,15 +22,9 @@ export const freezeAssignmentsService = async () => {
     ]);
   }
 
-  if (!freezeTime) {
-    throw new OperationFailedError([
-      'No freeze time found. Please create a freeze time first.',
-    ]);
-  }
-
   const awsAssignmentsPromise = await listAccountAssignments();
 
-  const { target, permissionSets } = freezeTime;
+  const { target, permissionSets } = data;
 
   const permissionSetArnsFreeze: string[] = permissionSets.map(
     (permissionSet) => (permissionSet as { arn: string }).arn

@@ -13,7 +13,11 @@ const port = config.PORT;
 
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'localhost'],
+    origin: [
+      'http://localhost:5173',
+      'localhost',
+      'https://tselfp.pragusga.com',
+    ],
     credentials: true,
   })
 );
@@ -28,10 +32,6 @@ app.get('/', (_req: Request, res: Response) => {
 
 app.use('/api/v1', ...routers);
 app.use(errorMiddleware);
-try {
-  app.listen(port, () => {
-    console.log(`[server]: Server is running at http://localhost:${port}`);
-  });
-} catch (e) {
-  console.error(e);
-}
+app.listen(port, () => {
+  console.log(`[server]: Server is running at http://localhost:${port}`);
+});

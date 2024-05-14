@@ -8,10 +8,7 @@ listMyPermissionSetsRouter.get(
   '/permission-sets.my-list',
   userOnlyMiddleware,
   asyncErrorHandler(async (req: IAuthRequest, res) => {
-    const result = await listMyPermissionSetsService(
-      req.user!.principalId!,
-      req.user!.principalType!
-    );
+    const result = await listMyPermissionSetsService(req.user!.id);
 
     res.status(200).send({
       ok: true,

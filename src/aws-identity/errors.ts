@@ -3,8 +3,8 @@ import { HttpError } from '../__shared__/errors';
 export class OperationFailedError extends HttpError {
   constructor(details: string[]) {
     super(500, 'aws-identity/operation-failed', [
-      'Operation failed',
       ...details,
+      'Operation failed',
     ]);
   }
 }

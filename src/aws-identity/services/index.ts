@@ -29,3 +29,4 @@ export * from './delete-principal.service';
 export * from './update-principal.service';
 export * from './list-principals-not-in-db.service';
 export * from './delete-assignment.service';
+export * from './create-assignment.service';

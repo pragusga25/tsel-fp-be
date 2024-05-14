@@ -8,6 +8,7 @@ import {
   CreateAccountAssignmentCommand,
   ListPermissionSetsCommand,
   DeleteAccountAssignmentCommand,
+  ListAccountAssignmentsCommand,
 } from '@aws-sdk/client-sso-admin';
 import { config } from '../__shared__/config';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
@@ -198,6 +199,136 @@ export const listInstanceArnsByIdentityStoreId = async (
     .map((instance) => instance.instanceArn) as string[];
 };
 
+export const listAccountAssignments = async (): Promise<
+  {
+    principalId: string;
+    principalType: PrincipalType;
+    permissionSets: {
+      arn: string;
+      name: string | null;
+    }[];
+    principalDisplayName: string | null;
+  }[]
+> => {
+  const identityInstancePromise = getIdentityInstanceOrThrow();
+  const accountIdPromise = getAccountId();
+  const permissionSetsPromise = describeAllPermissionSets();
+  const [{ instanceArn }, accountId, permissionSets] = await Promise.all([
+    identityInstancePromise,
+    accountIdPromise,
+    permissionSetsPromise,
+  ]);
+
+  const permissionSetArns = permissionSets.map(
+    (permissionSet) => permissionSet.permissionSetArn as string
+  );
+
+  let principals: {
+    id: string;
+    displayName: string | null;
+    principalType: PrincipalType;
+  }[] = [];
+
+  const commandPromises = permissionSetArns.map((permissionSetArn) => {
+    return ssoAdmin.send(
+      new ListAccountAssignmentsCommand({
+        InstanceArn: instanceArn,
+        AccountId: accountId,
+        PermissionSetArn: permissionSetArn,
+        MaxResults: 99,
+      })
+    );
+  });
+
+  const results = await Promise.all(commandPromises);
+
+  const principalsSet = new Set<string>();
+
+  results.forEach(({ AccountAssignments }) => {
+    if (!AccountAssignments) return;
+    AccountAssignments.forEach((assignment) => {
+      if (assignment.PrincipalId) {
+        const { PrincipalId, PrincipalType } = assignment;
+        const key = `${PrincipalType}#${PrincipalId}`;
+        principalsSet.add(key);
+      }
+    });
+  });
+
+  const principalsPromises = Array.from(principalsSet).map((principal) => {
+    const [principalType, principalId] = principal.split('#');
+    return describePrincipal(principalId, principalType as PrincipalType);
+  });
+
+  principals = await Promise.all(principalsPromises);
+
+  const mapDisplayName = new Map<string, string | null>();
+  principals.forEach((principal) => {
+    mapDisplayName.set(principal.id, principal.displayName);
+  });
+
+  const data: {
+    principalId: string;
+    principalType: PrincipalType;
+    permissionSets: {
+      arn: string;
+      name: string | null;
+    }[];
+    principalDisplayName: string | null;
+  }[] = [];
+
+  const mapData: Map<
+    string,
+    {
+      principalId: string;
+      principalType: PrincipalType;
+      permissionSets: {
+        arn: string;
+        name: string | null;
+      }[];
+      principalDisplayName: string | null;
+    }
+  > = new Map();
+
+  results.forEach(({ AccountAssignments }, idx) => {
+    if (!AccountAssignments) return;
+    AccountAssignments.forEach((assignment) => {
+      const { PrincipalId, PrincipalType, PermissionSetArn } = assignment;
+      const displayName = mapDisplayName.get(PrincipalId ?? '') ?? null;
+
+      if (!mapData.has(PrincipalId ?? '')) {
+        mapData.set(PrincipalId ?? '', {
+          principalId: PrincipalId ?? '-',
+          principalType: PrincipalType as PrincipalType,
+          permissionSets: [],
+          principalDisplayName: displayName,
+        });
+      }
+
+      const data = mapData.get(PrincipalId ?? '');
+
+      if (data) {
+        data.permissionSets.push({
+          arn: PermissionSetArn ?? '-',
+          name:
+            permissionSets.find(
+              (permissionSet) =>
+                permissionSet.permissionSetArn === PermissionSetArn
+            )?.name ?? null,
+        });
+      }
+
+      mapData.set(PrincipalId ?? '', data as any);
+    });
+  });
+
+  mapData.forEach((value) => {
+    data.push(value);
+  });
+
+  return data;
+};
+
 export const listGroups = async () => {
   const { identityStoreId } = await getIdentityInstanceOrThrow();
 
@@ -356,7 +487,33 @@ type Data = {
   permissionSetArns: string[];
 }[];
 
-export const listAccountAssignments = async () => {
+export const detachAllPermissionSetsFromPrincipal = async (
+  principalId: string,
+  principalType: PrincipalType
+) => {
+  const accountAssignments = await listAccountAssignmentsforPrincipal(
+    principalId,
+    principalType
+  );
+
+  console.log('accountAssignments: ', accountAssignments);
+
+  const permissionSetArns = accountAssignments.map(
+    (assg) => assg.permissionSetArn
+  ) as string[];
+
+  const detachPromises = permissionSetArns.map((permissionSetArn) =>
+    deleteAccountAssignment({
+      permissionSetArn,
+      principalId,
+      principalType,
+    })
+  );
+
+  await Promise.all(detachPromises);
+};
+
+export const listAccountAssignmentsv0 = async () => {
   // const principals = await listGroups();
   const principals = await listPrincipals();
   const principalsMap: Record<string, ReturnedPrincipal> = {};
@@ -471,6 +628,8 @@ export const deleteAccountAssignment = async (
       TargetType: 'AWS_ACCOUNT',
     })
   );
+  console.table(data);
+  console.log('STATUS: ', AccountAssignmentDeletionStatus);
 
   if (AccountAssignmentDeletionStatus?.FailureReason) {
     throw new OperationFailedError([
@@ -509,7 +668,7 @@ export const describeUser = async (userId: string) => {
   return {
     id: UserId ?? '-',
     displayName: DisplayName ?? null,
-    principalType: PrincipalType.GROUP,
+    principalType: PrincipalType.USER,
   };
 };
 
@@ -604,4 +763,12 @@ export const updatePrincipal = async ({
       })
     );
   }
+};
+
+export const describePrincipal = async (id: string, type: PrincipalType) => {
+  if (type === PrincipalType.GROUP) {
+    return describeGroup(id);
+  }
+
+  return describeUser(id);
 };

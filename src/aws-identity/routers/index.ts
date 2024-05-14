@@ -27,6 +27,7 @@ import { deletePrincipalRouter } from './delete-principal.router';
 import { updatePrincipalRouter } from './update-principal.router';
 import { deleteAssignmentRouter } from './delete-assignment.router';
 import { listPrincipalsNotInDbRouter } from './list-principals-not-in-db.router';
+import { createAssignmentRouter } from './create-assignment.router';
 
 export const awsIdentityRouters = [
   listGroupsRouter,
@@ -58,4 +59,5 @@ export const awsIdentityRouters = [
   updatePrincipalRouter,
   deleteAssignmentRouter,
   listPrincipalsNotInDbRouter,
+  createAssignmentRouter,
 ];

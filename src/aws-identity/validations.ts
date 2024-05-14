@@ -30,6 +30,13 @@ export const PrincipalIdSchema = string('PrincipalId must be a string.', [
   ),
 ]);
 
+export const NoteSchema = optional(
+  string('Note must be a string.', [
+    minLength(1, 'Please enter a note.'),
+    maxLength(32, 'Note must be less than 32 characters.'),
+  ])
+);
+
 export const PrincipalTypeSchema = picklist(
   Object.values(PrincipalType),
   'PrincipalType must be either USER or GROUP.'
@@ -60,9 +67,8 @@ export const PermissionSetsSchema = array(
   [minLength(1, 'Please input at least one permission set.')]
 );
 
-export const AccountAssignmentSchema = object({
-  instanceArn: InstanceArnSchema,
-  permissionSetArn: PermissionSetArnSchema,
+export const CreateAccountAssignmentSchema = object({
+  permissionSets: PermissionSetsSchema,
   principalId: PrincipalIdSchema,
   principalType: PrincipalTypeSchema,
 });
@@ -76,9 +82,7 @@ export const IdentityInstanceSchema = object({
 
 export const RequestAssignmentSchema = object({
   permissionSets: PermissionSetsSchema,
-  note: optional(
-    string('Note must be a string.', [minLength(1, 'Please enter a note.')])
-  ),
+  note: NoteSchema,
 
   operation: optional(
     picklist(
@@ -118,12 +122,7 @@ export const CreateFreezeTimeSchema = transform(
       // creatorId: string('Creator ID must be a string.', [
       //   minLength(1, 'Please enter the creator ID.'),
       // ]),
-      note: optional(
-        string('Note must be a string.', [
-          minLength(1, 'Please enter a note.'),
-          maxLength(32, 'Note must be less than 32 characters.'),
-        ])
-      ),
+      note: NoteSchema,
       target: picklist(Object.values(FreezeTimeTarget), 'Invalid target.'),
       permissionSets: PermissionSetsSchema,
       startTime: string(
@@ -247,7 +246,9 @@ export type PushOneAssignmentData = Output<typeof PushOneAssignmentSchema>;
 export type EditAccountAssignmentData = Output<
   typeof EditAccountAssignmentSchema
 >;
-export type AccountAssignmentData = Output<typeof AccountAssignmentSchema>;
+export type CreateAccountAssignmentData = Output<
+  typeof CreateAccountAssignmentSchema
+>;
 export type IdentityInstanceData = Output<typeof IdentityInstanceSchema>;
 export type RequestAssignmentData = Output<typeof RequestAssignmentSchema> & {
   requesterId: string;

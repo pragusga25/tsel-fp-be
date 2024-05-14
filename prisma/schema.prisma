@@ -75,6 +75,10 @@ model AssignmentRequest {
   status         AssignmentRequestStatus @default(PENDING)
   operation      AssignmentOperation     @default(ATTACH)
 
+  principalId          String
+  principalType        PrincipalType @default(GROUP)
+  principalDisplayName String?
+
   note String?
 }
 
