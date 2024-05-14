@@ -1,7 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import helmet from 'helmet';
 import { config as c } from 'dotenv';
-import { config } from './__shared__/config';
 import { routers } from './routers';
 import { errorMiddleware } from './__middlewares__';
 import cors from 'cors';
@@ -9,7 +8,7 @@ import cookieParser from 'cookie-parser';
 c();
 
 const app: Express = express();
-const port = process.env.PORT || config.PORT || 8080;
+const port = process.env.PORT || 8080;
 
 app.use(
   cors({
