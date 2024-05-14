@@ -1,32 +1,18 @@
-FROM node:18.16.0-alpine as builder
-
-WORKDIR /usr/src/app
-
-# Add package file
-COPY package.json ./
-COPY package-lock.json ./
-
-# Install deps
+FROM node:lts-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
 RUN npm install
-
 COPY . .
-
+RUN npx prisma migrate deploy
 RUN npx prisma generate
-# Build dist
 RUN npm run build
 
-# Start production image build
-FROM node:18.16.0-alpine
-
-WORKDIR /usr/src/app
-
-COPY package.json ./
-COPY package-lock.json ./
-
-RUN npm install --omit=dev
-
-COPY --from=builder /usr/src/app/dist ./dist
-
-# Expose port 3000
+FROM node:lts-alpine AS server
+WORKDIR /app
+COPY package* ./
+RUN npm i --only=production
+COPY --from=builder ./app/dist ./dist
+COPY --from=builder ./app/prisma ./prisma
+COPY --from=builder ./app/node_modules ./node_modules
 EXPOSE 3000
 CMD ["npm", "start"]
