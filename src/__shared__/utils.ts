@@ -1,6 +1,5 @@
 import { config } from './config';
 import {
-  TokenExpiredError as Tex,
   AccessTokenExpiredError as ATex,
   RefreshTokenExpiredError as RTex,
 } from './errors';
@@ -55,6 +54,7 @@ export class HttpUtil {
       secure: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       path: '/',
+      domain: 'tsel.pragusga.com',
     });
   }
 }
