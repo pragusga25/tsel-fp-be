@@ -8,24 +8,21 @@ services:
       dockerfile: Dockerfile
     ports:
       - '8080:8080'
-    depends_on:
-      - db
     restart: unless-stopped
     env_file:
       - .env
 
-  db:
-    container_name: tsel-db
-    image: postgres:latest
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - '5435:5432'
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
+  # db:
+  #   container_name: tsel-db
+  #   image: postgres:latest
+  #   environment:
+  #     POSTGRES_DB: postgres
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - '5435:5432'
+  #   restart: unless-stopped
+# volumes:
+#   postgres_data:

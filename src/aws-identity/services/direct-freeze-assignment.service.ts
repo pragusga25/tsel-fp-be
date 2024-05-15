@@ -1,6 +1,9 @@
 import { FreezeTimeTarget } from '@prisma/client';
 import { db } from '../../db';
-import { OperationFailedError } from '../errors';
+import {
+  AccountAssignmentInAWSNotFoundError,
+  OperationFailedError,
+} from '../errors';
 import {
   createAccountAssignment,
   deleteAccountAssignment,
@@ -23,6 +26,10 @@ export const directFreezeAssignmentsService = async (
   }
 
   const awsAssignmentsPromise = await listAccountAssignments();
+
+  if (awsAssignmentsPromise.length === 0) {
+    throw new AccountAssignmentInAWSNotFoundError();
+  }
 
   const { target, permissionSets } = data;
 

@@ -83,3 +83,11 @@ export class PrincipalConflictError extends HttpError {
     super(400, 'aws-identity/principal-conflict', details);
   }
 }
+
+export class AccountAssignmentInAWSNotFoundError extends HttpError {
+  constructor() {
+    super(404, 'aws-identity/account-assignment-in-aws-not-found', [
+      'Account assignment in aws not found. Make sure the assignment exists.',
+    ]);
+  }
+}
