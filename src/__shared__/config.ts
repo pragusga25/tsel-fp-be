@@ -14,7 +14,7 @@ import {
 c();
 
 const envVarsSchema = object({
-  // PORT: optional(number([integer(), minValue(1), maxValue(65535)]), 8080),
+  PORT: optional(number([integer(), minValue(1), maxValue(65535)]), 8080),
   JWT_SECRET: string([minLength(8)]),
   JWT_EXPIRES_IN: optional(picklist(['1h', '1d', '7d', '30d']), '1d'),
   AWS_REGION: optional(string(), 'us-east-1'),
@@ -25,6 +25,7 @@ const envVarsSchema = object({
   API_KEY: string('API key must be a string', [
     minLength(8, 'API key must be at least 8 characters long'),
   ]),
+  CORS_ORIGINS: optional(string(), 'http://localhost:5173'),
 });
 
 export const config = parse(envVarsSchema, process.env);

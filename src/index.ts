@@ -5,19 +5,16 @@ import { routers } from './routers';
 import { errorMiddleware } from './__middlewares__';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { config } from './__shared__/config';
 c();
 
 const app: Express = express();
-const port = process.env.$PORT || process.env.PORT || 8080;
+const port = config.PORT || 8080;
 console.log('process.env: ', process.env);
 
 app.use(
   cors({
-    origin: [
-      'http://localhost:5173',
-      'localhost',
-      'https://tselfp.pragusga.com',
-    ],
+    origin: config.CORS_ORIGINS.split(','), // allow multiple origins
     credentials: true,
   })
 );
