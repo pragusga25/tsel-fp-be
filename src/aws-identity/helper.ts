@@ -13,6 +13,11 @@ import {
 import { config } from '../__shared__/config';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import {
+  OrganizationsClient,
+  ListAccountsCommand,
+  Account,
+} from '@aws-sdk/client-organizations';
+import {
   CreateGroupCommand,
   CreateUserCommand,
   DeleteGroupCommand,
@@ -34,16 +39,20 @@ import {
 } from './errors';
 import { db } from '../db';
 import { PrincipalType } from '@prisma/client';
-import { instance } from 'valibot';
 import {
+  CreateGroupPrincipalData,
   CreatePrincipalData,
+  CreateUserPrincipalData,
   DeletePrincipalData,
   UpdatePrincipalData,
+  UpdatePrincipalGroupData,
+  UpdatePrincipalUserData,
 } from './validations';
 
 const credentials = {
   accessKeyId: config.AWS_ACCESS_KEY_ID,
   secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+  sessionToken: config.AWS_SESSION_TOKEN,
 };
 
 export const ssoAdmin = new SSOAdminClient({
@@ -54,9 +63,44 @@ export const sts = new STSClient({ credentials });
 
 export const identityStore = new IdentitystoreClient({ credentials });
 
+export const organizations = new OrganizationsClient({ credentials });
+
 export const getAccountId = async () => {
   const { Account } = await sts.send(new GetCallerIdentityCommand({}));
   return Account;
+};
+
+export const listAccounts = async () => {
+  const accounts: Account[] = [];
+  const { Accounts, NextToken } = await organizations.send(
+    new ListAccountsCommand({
+      // MaxResults: 9,
+    })
+  );
+  if (!Accounts || Accounts.length === 0) return [];
+  let nextToken: string | undefined = undefined;
+  nextToken = NextToken;
+
+  accounts.push(...Accounts);
+
+  while (nextToken) {
+    const { Accounts, NextToken } = await organizations.send(
+      new ListAccountsCommand({
+        MaxResults: 99,
+        NextToken: nextToken,
+      })
+    );
+    if (!Accounts || Accounts.length === 0) break;
+    nextToken = NextToken;
+    accounts.push(...Accounts);
+  }
+
+  return accounts.map((acc) => {
+    return {
+      id: acc.Id,
+      name: acc.Name,
+    };
+  });
 };
 
 export const getIdentityInstanceOrThrow = async () => {
@@ -398,7 +442,12 @@ export const listUsers = async () => {
   return users.map((user) => ({
     id: user.UserId ?? '-',
     displayName: user.DisplayName ?? null,
-    name: user.Name ?? null,
+    name: user.Name
+      ? {
+          familyName: user.Name.FamilyName ?? null,
+          givenName: user.Name.GivenName ?? null,
+        }
+      : null,
     identityStoreId: user.IdentityStoreId ?? null,
     emails: user.Emails?.map((email) => email.Value).filter(Boolean) ?? [],
     username: user.UserName ?? null,
@@ -628,8 +677,6 @@ export const deleteAccountAssignment = async (
       TargetType: 'AWS_ACCOUNT',
     })
   );
-  console.table(data);
-  console.log('STATUS: ', AccountAssignmentDeletionStatus);
 
   if (AccountAssignmentDeletionStatus?.FailureReason) {
     throw new OperationFailedError([
@@ -709,6 +756,42 @@ export const createPrincipal = async ({
   };
 };
 
+export const createGroupPrincipal = async (data: CreateGroupPrincipalData) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+
+  const { GroupId } = await identityStore.send(
+    new CreateGroupCommand({
+      DisplayName: data.displayName,
+      IdentityStoreId: identityStoreId,
+      Description: data.description,
+    })
+  );
+
+  return {
+    id: GroupId,
+  };
+};
+
+export const createUserPrincipal = async (data: CreateUserPrincipalData) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+
+  const { UserId } = await identityStore.send(
+    new CreateUserCommand({
+      DisplayName: data.displayName,
+      IdentityStoreId: identityStoreId,
+      UserName: data.username,
+      Name: {
+        FamilyName: data.familyName,
+        GivenName: data.givenName,
+      },
+    })
+  );
+
+  return {
+    id: UserId,
+  };
+};
+
 export const deletePrincipal = async ({ id, type }: DeletePrincipalData) => {
   const { identityStoreId } = await getIdentityInstanceOrThrow();
   const input = {
@@ -763,6 +846,61 @@ export const updatePrincipal = async ({
       })
     );
   }
+};
+
+export const updatePrincipalGroup = async (data: UpdatePrincipalGroupData) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+  const { id, displayName, description } = data;
+
+  await identityStore.send(
+    new UpdateGroupCommand({
+      GroupId: id,
+      IdentityStoreId: identityStoreId,
+      Operations: [
+        {
+          AttributePath: 'DisplayName',
+          AttributeValue: displayName,
+        },
+        {
+          AttributePath: 'Description',
+          AttributeValue: description,
+        },
+      ],
+    })
+  );
+
+  return {
+    id,
+  };
+};
+
+export const updatePrincipalUser = async (data: UpdatePrincipalUserData) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+  const { id, displayName, familyName, givenName } = data;
+
+  await identityStore.send(
+    new UpdateUserCommand({
+      UserId: id,
+      IdentityStoreId: identityStoreId,
+      Operations: [
+        {
+          AttributePath: 'displayName',
+          AttributeValue: displayName,
+        },
+        {
+          AttributePath: 'name',
+          AttributeValue: {
+            FamilyName: familyName,
+            GivenName: givenName,
+          },
+        },
+      ],
+    })
+  );
+
+  return {
+    id,
+  };
 };
 
 export const describePrincipal = async (id: string, type: PrincipalType) => {

@@ -23,6 +23,14 @@ export const listPrincipalsNotInDbService = async () => {
     (p) => !principalsFromDbMap.has(p.id)
   );
 
+  principalsNotInDb.sort((a, b) => {
+    if (a.displayName && b.displayName) {
+      return a.displayName.localeCompare(b.displayName);
+    }
+
+    return 0;
+  });
+
   return {
     result: principalsNotInDb.map((p) => ({
       id: p.id,

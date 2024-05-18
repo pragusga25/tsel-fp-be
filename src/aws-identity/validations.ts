@@ -219,6 +219,36 @@ export const CreatePrincipalSchema = object({
   ),
 });
 
+export const CreateUserPrincipalSchema = object({
+  displayName: string('Display name must be a string', [
+    minLength(1, 'Please enter a name.'),
+  ]),
+  username: string('Username must be a string', [
+    minLength(1, 'Please enter a name.'),
+  ]),
+  givenName: optional(
+    string('Given name must be a string', [
+      minLength(1, 'Please enter a name.'),
+    ])
+  ),
+  familyName: optional(
+    string('Family name must be a string', [
+      minLength(1, 'Please enter a name.'),
+    ])
+  ),
+});
+
+export const CreateGroupPrincipalSchema = object({
+  displayName: string('Principal must be a string', [
+    minLength(1, 'Please enter a name.'),
+  ]),
+  description: optional(
+    string('Description must be a string', [
+      minLength(1, 'Please enter a name.'),
+    ])
+  ),
+});
+
 export const DeletePrincipalSchema = object({
   id: string('Principal must be a string', [
     minLength(1, 'Please enter a name.'),
@@ -236,9 +266,45 @@ export const UpdatePrincipalSchema = object({
   ]),
 });
 
+export const UpdatePrincipalGroupSchema = object({
+  id: string('Id must be a string', [minLength(1, 'Please enter an id.')]),
+  displayName: string('Display name must be a string', [
+    minLength(1, 'Please enter a display name.'),
+  ]),
+  description: optional(
+    string('Description must be a string', [
+      minLength(1, 'Please enter a description.'),
+    ])
+  ),
+});
+
+export const UpdatePrincipalUserSchema = object({
+  id: string('Id must be a string', [minLength(1, 'Please enter an id.')]),
+  displayName: string('Display name must be a string', [
+    minLength(1, 'Please enter a display name.'),
+  ]),
+
+  givenName: string('Given name must be a string', [
+    minLength(1, 'Please enter a given name.'),
+  ]),
+  familyName: string('Family name must be a string', [
+    minLength(1, 'Please enter a family name.'),
+  ]),
+});
+
+export type CreateUserPrincipalData = Output<typeof CreateUserPrincipalSchema>;
+export type CreateGroupPrincipalData = Output<
+  typeof CreateGroupPrincipalSchema
+>;
+
 export type DeleteAccountAssignmentData = Output<
   typeof DeleteAccountAssignmentSchema
 >;
+
+export type UpdatePrincipalGroupData = Output<
+  typeof UpdatePrincipalGroupSchema
+>;
+export type UpdatePrincipalUserData = Output<typeof UpdatePrincipalUserSchema>;
 export type UpdatePrincipalData = Output<typeof UpdatePrincipalSchema>;
 export type CreatePrincipalData = Output<typeof CreatePrincipalSchema>;
 export type DeletePrincipalData = Output<typeof DeletePrincipalSchema>;

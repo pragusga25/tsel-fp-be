@@ -1,7 +1,7 @@
 import { acceptAssignmentRequestsRouter } from './accept-assignment-requests.router';
 import { getIdentityInstanceRouter } from './get-identity-instance.router';
 import { listAssignmentsRouter } from './list-assignments.router';
-import { listGroupsRouter } from './list-groups.router';
+import { listGroupPrincipalsRouter } from './list-group-principals.router';
 import { listInstancesRouter } from './list-instances.router';
 import { listPermissionSetsRouter } from './list-permission-sets.router';
 import { listPrincipalsRouter } from './list-principals.router';
@@ -28,9 +28,15 @@ import { updatePrincipalRouter } from './update-principal.router';
 import { deleteAssignmentRouter } from './delete-assignment.router';
 import { listPrincipalsNotInDbRouter } from './list-principals-not-in-db.router';
 import { createAssignmentRouter } from './create-assignment.router';
+import { listUserPrincipalsRouter } from './list-user-principals.router';
+import { createUserPrincipalRouter } from './create-user-principal.router';
+import { createGroupPrincipalRouter } from './create-group-principal.router';
+import { updatePrincipalUserRouter } from './update-principal-user.router';
+import { updatePrincipalGroupRouter } from './update-principal-group.router';
+import { listAwsAccountsRouter } from './list-aws-accounts.router';
 
 export const awsIdentityRouters = [
-  listGroupsRouter,
+  listGroupPrincipalsRouter,
   listInstancesRouter,
   getIdentityInstanceRouter,
   upsertIdentityInstanceRouter,
@@ -60,4 +66,10 @@ export const awsIdentityRouters = [
   deleteAssignmentRouter,
   listPrincipalsNotInDbRouter,
   createAssignmentRouter,
+  listUserPrincipalsRouter,
+  createUserPrincipalRouter,
+  createGroupPrincipalRouter,
+  updatePrincipalUserRouter,
+  updatePrincipalGroupRouter,
+  listAwsAccountsRouter,
 ];

@@ -1,7 +1,7 @@
-import { listPrincipals } from '../helper';
+import { listGroups } from '../helper';
 
-export const listPrincipalsService = async () => {
-  const result = await listPrincipals();
+export const listGroupPrincipalsService = async () => {
+  const result = await listGroups();
 
   result.sort((a, b) => {
     if (a.displayName && b.displayName) {

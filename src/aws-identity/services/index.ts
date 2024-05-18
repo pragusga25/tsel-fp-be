@@ -1,6 +1,6 @@
 export * from './create-assignment.service';
 export * from './delete-assignment.service';
-export * from './list-groups.service';
+export * from './list-group-principals.service';
 export * from './list-instances.service';
 export * from './get-identity-instance.service';
 export * from './upsert-identity-instance.service';
@@ -30,3 +30,9 @@ export * from './update-principal.service';
 export * from './list-principals-not-in-db.service';
 export * from './delete-assignment.service';
 export * from './create-assignment.service';
+export * from './list-user-principals.service';
+export * from './create-user-principal.service';
+export * from './create-group-principal.service';
+export * from './update-principal-group.service';
+export * from './update-principal-user.service';
+export * from './list-aws-accounts.service';

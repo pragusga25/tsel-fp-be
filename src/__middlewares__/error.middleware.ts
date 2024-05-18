@@ -20,6 +20,7 @@ export const errorMiddleware = (
     ok: false,
     error: {
       code: 'internal-server-error',
+      details: [err.name, err.message],
     },
   };
 
