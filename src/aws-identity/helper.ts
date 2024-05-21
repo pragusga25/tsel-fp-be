@@ -772,7 +772,6 @@ export const listAccountAssignmentsv2 = async (
   const accountAssignments = await Promise.all(accountAssignmentsPromises);
 
   const uniquePermissionSetArns = new Set<string>();
-  console.log('accountAssignments: ', accountAssignments);
 
   accountAssignments.forEach((assgs, idx) => {
     const principalId = principals[idx].id;

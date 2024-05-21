@@ -26,7 +26,6 @@ export const meService = async (userId: string) => {
   }
 
   const { principalAwsAccountUsers, ...rest } = user;
-  console.log('principalAwsAccountUsers: ', principalAwsAccountUsers);
 
   if (principalAwsAccountUsers.length === 0)
     return { result: { ...rest, principalAwsAccountUsers: [] } };

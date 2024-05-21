@@ -61,7 +61,7 @@ export class HttpUtil {
     res.cookie('refreshToken', '', {
       httpOnly: true,
       sameSite: 'none',
-      secure: config.NODE_ENV === 'production',
+      secure: true,
       maxAge: 0,
       path: '/',
     });
