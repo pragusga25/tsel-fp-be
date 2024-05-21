@@ -25,7 +25,7 @@ export const createFreezeTimeService = async (data: CreateFreezeTimeData) => {
     const result = await trx.freezeTime.create({ data, select: { id: true } });
 
     if (todayDate === startTimeDate) {
-      // await directFreezeAssignmentsService(data);
+      await directFreezeAssignmentsService(data);
     }
 
     return result;
