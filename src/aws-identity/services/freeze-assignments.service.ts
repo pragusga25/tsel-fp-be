@@ -9,6 +9,7 @@ import {
   deleteAccountAssignment,
   listAccountAssignments,
   listGroups,
+  listPermissionSetArnsInSet,
   listPrincipals,
   listUsers,
 } from '../helper';
@@ -48,10 +49,11 @@ export const freezeAssignmentsService = async () => {
     throw new AccountAssignmentInAWSNotFoundError();
   }
 
-  const { target, permissionSets } = freezeTime;
+  let { target, permissionSetArns: permissionSetArnsFreeze } = freezeTime;
 
-  const permissionSetArnsFreeze: string[] = permissionSets.map(
-    (permissionSet) => (permissionSet as { arn: string }).arn
+  const awsPermissionSetArns = await listPermissionSetArnsInSet();
+  permissionSetArnsFreeze = permissionSetArnsFreeze.filter((permissionSetArn) =>
+    awsPermissionSetArns.has(permissionSetArn)
   );
 
   const principalsMap = {
@@ -64,8 +66,6 @@ export const freezeAssignmentsService = async () => {
 
   const deleteAccountAssignmentPromise: Promise<unknown>[] = [];
   const memo = new Set<string>();
-
-  console.log('AWS ASSIGNMENTS: ', awsAssignmentsPromise);
 
   for (let i = 0; i < awsAssignmentsPromise.length; i++) {
     const awsAssignment = awsAssignmentsPromise[i];
@@ -84,7 +84,7 @@ export const freezeAssignmentsService = async () => {
     permissionSetArnsAws.forEach((permissionSetArn) => {
       if (permissionSetArnsFreeze.includes(permissionSetArn)) {
         memo.add(
-          `${awsAssignment.principalId}-${awsAssignment.principalType}-${permissionSetArn}`
+          `${awsAssignment.principalId}#${awsAssignment.principalType}#${permissionSetArn}`
         );
         return;
       }
@@ -104,7 +104,7 @@ export const freezeAssignmentsService = async () => {
     const principal = principals[i];
 
     permissionSetArnsFreeze.forEach((permissionSet) => {
-      const key = `${principal.id}-${principal.principalType}-${permissionSet}`;
+      const key = `${principal.id}#${principal.principalType}#${permissionSet}`;
       if (memo.has(key)) {
         return;
       }

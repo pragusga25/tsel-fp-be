@@ -34,6 +34,8 @@ import { createGroupPrincipalRouter } from './create-group-principal.router';
 import { updatePrincipalUserRouter } from './update-principal-user.router';
 import { updatePrincipalGroupRouter } from './update-principal-group.router';
 import { listAwsAccountsRouter } from './list-aws-accounts.router';
+import { listUserAssignmentsRouter } from './list-user-assignments.router';
+import { listGroupAssignmentsRouter } from './list-group-assignments.router';
 
 export const awsIdentityRouters = [
   listGroupPrincipalsRouter,
@@ -72,4 +74,6 @@ export const awsIdentityRouters = [
   updatePrincipalUserRouter,
   updatePrincipalGroupRouter,
   listAwsAccountsRouter,
+  listUserAssignmentsRouter,
+  listGroupAssignmentsRouter,
 ];

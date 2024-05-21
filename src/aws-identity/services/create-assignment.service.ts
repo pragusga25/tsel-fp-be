@@ -2,20 +2,13 @@ import { Prisma } from '@prisma/client';
 import { db } from '../../db';
 import { AccountAssignmentAlreadyExistsError } from '../errors';
 import { CreateAccountAssignmentData } from '../validations';
-import { describePrincipal } from '../helper';
 
 export const createAssignmentService = async (
   data: CreateAccountAssignmentData
 ) => {
   try {
-    const { principalId, principalType } = data;
-
-    const principal = await describePrincipal(principalId, principalType);
     const result = await db.accountAssignment.create({
-      data: {
-        ...data,
-        principalDisplayName: principal.displayName,
-      },
+      data,
       select: { id: true },
     });
     return { result };

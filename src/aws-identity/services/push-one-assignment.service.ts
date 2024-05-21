@@ -21,7 +21,8 @@ export const pushOneAssignmentService = async ({
   const {
     principalId,
     principalType,
-    permissionSets: permissionSetsFromDb,
+    permissionSetArns: permissionSetArnsFromDb,
+    awsAccountId,
   } = assignment;
 
   const permissionSetsFromAws = await describePermissionSetsInPrincipal(
@@ -29,11 +30,8 @@ export const pushOneAssignmentService = async ({
     principalType
   );
 
-  const permissionSetArnsFromDb = permissionSetsFromDb.map(
-    (ps) => (ps as { arn: string }).arn
-  );
   const permissionSetArnsFromAws = permissionSetsFromAws.map(
-    (ps) => ps!.permissionSetArn
+    (ps) => ps.permissionSetArn
   ) as string[];
 
   const permissionSetsToAdd = permissionSetArnsFromDb.filter(
@@ -49,6 +47,7 @@ export const pushOneAssignmentService = async ({
       principalId,
       principalType,
       permissionSetArn: ps,
+      awsAccountId,
     })
   );
 
@@ -57,6 +56,7 @@ export const pushOneAssignmentService = async ({
       permissionSetArn: ps,
       principalId,
       principalType,
+      awsAccountId,
     })
   );
 

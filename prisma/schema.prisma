@@ -14,21 +14,34 @@ datasource db {
 }
 
 model User {
-  id                   String         @id @default(cuid())
-  username             String         @unique
-  password             String
-  name                 String
-  principalId          String?
-  principalDisplayName String?
-  principalType        PrincipalType? @default(GROUP)
+  id       String @id @default(cuid())
+  username String @unique
+  password String
+  name     String
 
-  role                       Role                @default(USER)
-  AssignmentRequestRequester AssignmentRequest[] @relation("requester")
-  AssignmentRequestResponder AssignmentRequest[] @relation("responder")
+  role                        Role                @default(USER)
+  assignmentRequestRequesters AssignmentRequest[] @relation("requester")
+  assignmentRequestResponders AssignmentRequest[] @relation("responder")
 
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  FreezeTime FreezeTime[]
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  freezeTimes              FreezeTime[]
+  principalAwsAccountUsers PrincipalAwsAccountUser[]
+}
+
+model PrincipalAwsAccountUser {
+  id            String        @id @default(cuid())
+  principalId   String
+  principalType PrincipalType @default(GROUP)
+  awsAccountId  String
+
+  userId String
+  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([principalId, awsAccountId, principalType, userId])
 }
 
 model IdentityInstance {
@@ -40,24 +53,15 @@ model IdentityInstance {
 model AccountAssignment {
   id String @id @default(cuid())
 
-  permissionSets       Json[]
-  principalId          String        @unique
-  principalType        PrincipalType @default(GROUP)
-  principalDisplayName String?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  lastPushedAt         DateTime?
-}
+  permissionSetArns String[]
+  principalId       String
+  principalType     PrincipalType @default(GROUP)
+  awsAccountId      String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  lastPushedAt      DateTime?
 
-model AccountAssignmentSnapshot {
-  id String @id @default(cuid())
-
-  permissionSets       Json[]
-  principalId          String        @unique
-  principalType        PrincipalType @default(GROUP)
-  principalDisplayName String?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  @@unique([principalId, awsAccountId, principalType])
 }
 
 model AssignmentRequest {
@@ -71,13 +75,13 @@ model AssignmentRequest {
   requestedAt DateTime  @default(now())
   respondedAt DateTime?
 
-  permissionSets Json[]
-  status         AssignmentRequestStatus @default(PENDING)
-  operation      AssignmentOperation     @default(ATTACH)
+  permissionSetArns String[]
+  status            AssignmentRequestStatus @default(PENDING)
+  operation         AssignmentOperation     @default(ATTACH)
 
-  principalId          String
-  principalType        PrincipalType @default(GROUP)
-  principalDisplayName String?
+  principalId   String
+  principalType PrincipalType @default(GROUP)
+  awsAccountId  String
 
   note String?
 }
@@ -88,8 +92,8 @@ model FreezeTime {
   endTime   DateTime
   note      String?
 
-  target         FreezeTimeTarget @default(ALL)
-  permissionSets Json[]
+  target            FreezeTimeTarget @default(ALL)
+  permissionSetArns String[]
 
   creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   creatorId String

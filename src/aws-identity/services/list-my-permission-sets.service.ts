@@ -1,36 +1,20 @@
-import { describePermissionSetsInPrincipal } from '../helper';
+import { describeDetailPrincipalAwsAccounts } from '../helper';
 import { db } from '../../db';
-import { OperationFailedError } from '../errors';
 
 export const listMyPermissionSetsService = async (userId: string) => {
-  const user = await db.user.findUnique({
+  const principalAwsAccount = await db.principalAwsAccountUser.findMany({
     where: {
-      id: userId,
+      userId: userId,
     },
     select: {
+      id: true,
       principalId: true,
       principalType: true,
+      awsAccountId: true,
     },
   });
 
-  if (!user) {
-    throw new OperationFailedError(['User not found']);
-  }
+  const result = await describeDetailPrincipalAwsAccounts(principalAwsAccount);
 
-  if (!user.principalId || !user.principalType) {
-    throw new OperationFailedError(['Principal not found']);
-  }
-
-  const { principalId, principalType } = user;
-  const result = await describePermissionSetsInPrincipal(
-    principalId,
-    principalType
-  );
-
-  return {
-    result: result.map((r) => ({
-      arn: r.permissionSetArn,
-      name: r.name,
-    })),
-  };
+  return { result };
 };

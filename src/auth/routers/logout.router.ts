@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { config } from '../../__shared__/config';
+import { HttpUtil } from '../../__shared__/utils';
 
 const logoutRouter = Router();
 
@@ -11,14 +12,8 @@ logoutRouter.get('/auth.logout', async (req, res) => {
     return;
   }
 
-  // res.clearCookie('refreshToken');
-  res.cookie('refreshToken', '', {
-    httpOnly: true,
-    sameSite: 'none',
-    secure: config.NODE_ENV === 'production',
-    maxAge: 0,
-    path: '/',
-  });
+  HttpUtil.deleteCookie(res);
+
   res.status(200).send({ ok: true });
 });
 

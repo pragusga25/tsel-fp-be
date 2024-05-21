@@ -97,10 +97,23 @@ export const listAccounts = async () => {
 
   return accounts.map((acc) => {
     return {
-      id: acc.Id,
-      name: acc.Name,
+      id: acc.Id ?? '',
+      name: acc.Name ?? '',
+      email: acc.Email,
+      arn: acc.Arn,
     };
   });
+};
+
+type ListAccountsReturnedOne = Awaited<ReturnType<typeof listAccounts>>[0];
+
+export const listAccountsInMap = async () => {
+  const accounts = await listAccounts();
+  const map = new Map<string, ListAccountsReturnedOne>();
+  accounts.forEach((acc) => {
+    map.set(acc.id!, acc);
+  });
+  return map;
 };
 
 export const getIdentityInstanceOrThrow = async () => {
@@ -119,7 +132,7 @@ export const getIdentityInstanceOrThrow = async () => {
 
 export const listAccountAssignmentsforPrincipal = async (
   principalId: string,
-  principalType: 'USER' | 'GROUP' = 'GROUP'
+  principalType: PrincipalType = PrincipalType.GROUP
 ) => {
   const identityInstance = await getIdentityInstanceOrThrow();
 
@@ -158,17 +171,25 @@ export const listAccountAssignmentsforPrincipal = async (
     accountAssignments.push(...AccountAssignments);
   }
 
-  return accountAssignments.map((assgn) => ({
-    accountId: assgn.AccountId ?? null,
-    permissionSetArn: assgn.PermissionSetArn ?? null,
-    principalId: assgn.PrincipalId ?? '-',
-    principalType: assgn.PrincipalType ?? null,
-  }));
+  return accountAssignments
+    .filter(
+      (assgn) =>
+        !!assgn.AccountId &&
+        !!assgn.PermissionSetArn &&
+        !!assgn.PrincipalId &&
+        !!assgn.PrincipalType
+    )
+    .map((assgn) => ({
+      accountId: assgn.AccountId!,
+      permissionSetArn: assgn.PermissionSetArn!,
+      principalId: assgn.PrincipalId!,
+      principalType: assgn.PrincipalType!,
+    }));
 };
 
 export const describePermissionSetsInPrincipal = async (
   principalId: string,
-  principalType: 'USER' | 'GROUP' = 'GROUP'
+  principalType: PrincipalType = PrincipalType.GROUP
 ) => {
   const accountAssignments = await listAccountAssignmentsforPrincipal(
     principalId,
@@ -192,6 +213,112 @@ export const describePermissionSetsInPrincipal = async (
   const permissionSets = await Promise.all(permissionSetsPromises);
 
   return permissionSets;
+};
+
+export const describeDetailPrincipalAwsAccounts = async (
+  data: {
+    principalId: string;
+    principalType: PrincipalType;
+    awsAccountId: string;
+    id: string;
+  }[]
+) => {
+  const principalsUnique = [
+    ...new Set(data.map((p) => `${p.principalId}#${p.principalType}`)),
+  ];
+
+  const principalsAwsAccountsSet = new Set(
+    data.map((p) => `${p.principalId}#${p.principalType}#${p.awsAccountId}`)
+  );
+
+  const accountAssignmentPromises = principalsUnique.map((principal) => {
+    const [principalId, principalType] = principal.split('#');
+    return listAccountAssignmentsforPrincipal(
+      principalId,
+      principalType as PrincipalType
+    );
+  });
+
+  const [accountAssignments, permissionSetsMap, awsAccountsMap, principalsMap] =
+    await Promise.all([
+      Promise.all(accountAssignmentPromises),
+      describeAllPermissionSetsInMap(),
+      listAccountsInMap(),
+      listPrincipalsInMap(),
+    ]);
+
+  const result: {
+    principalId: string;
+    principalType: PrincipalType;
+    permissionSets: {
+      arn: string;
+      name: string | null;
+    }[];
+    awsAccountId: string;
+    awsAccountName: string | null;
+    principalDisplayName: string | null;
+    id: string;
+  }[] = [];
+
+  const principalAwsAccountMap = new Map<
+    string,
+    {
+      permissionSetArns: string[];
+    }
+  >();
+
+  accountAssignments.forEach((assgs, idx) => {
+    const principalId = data[idx].principalId;
+    const assignment = assgs.filter(
+      (assg) => assg.principalId === principalId && !!assg.accountId
+    );
+
+    if (assignment.length === 0) return;
+
+    assignment.forEach(({ principalId, accountId, permissionSetArn }) => {
+      const key = `${principalId}#${accountId}`;
+
+      if (!principalAwsAccountMap.has(key)) {
+        principalAwsAccountMap.set(key, {
+          permissionSetArns: [],
+        });
+      }
+
+      const value = principalAwsAccountMap.get(key);
+      if (value) {
+        value.permissionSetArns.push(permissionSetArn);
+      }
+
+      principalAwsAccountMap.set(key, value!);
+    });
+  });
+
+  data.forEach(({ principalId, awsAccountId, principalType, id }) => {
+    const key = `${principalId}#${awsAccountId}`;
+    const value = principalAwsAccountMap.get(key);
+
+    const permissionSets = !value
+      ? []
+      : value.permissionSetArns.map((permissionSetArn) => {
+          const permissionSet = permissionSetsMap.get(permissionSetArn);
+          return {
+            arn: permissionSetArn,
+            name: permissionSet?.name ?? null,
+          };
+        });
+
+    result.push({
+      principalId,
+      principalType,
+      permissionSets,
+      awsAccountId,
+      awsAccountName: awsAccountsMap.get(awsAccountId)?.name ?? null,
+      principalDisplayName: principalsMap.get(principalId)?.displayName ?? null,
+      id,
+    });
+  });
+
+  return result;
 };
 
 export const listInstances = async () => {
@@ -456,9 +583,38 @@ export const listUsers = async () => {
 };
 
 export const listPrincipals = async () => {
-  const groups = await listGroups();
-  const users = await listUsers();
+  const [groups, users] = await Promise.all([listGroups(), listUsers()]);
   return [...groups, ...users];
+};
+
+export const listPrincipalsInMap = async () => {
+  const [groups, users] = await Promise.all([listGroups(), listUsers()]);
+  const principals = [...groups, ...users];
+  const map = new Map<string, ReturnedPrincipal>();
+
+  principals.forEach((principal) => {
+    map.set(principal.id, principal);
+  });
+
+  return map;
+};
+
+export const listGroupsInMap = async () => {
+  const groups = await listGroups();
+  const map = new Map<string, Awaited<ReturnType<typeof listGroups>>[0]>();
+  groups.forEach((group) => {
+    map.set(group.id, group);
+  });
+  return map;
+};
+
+export const listUsersInMap = async () => {
+  const users = await listUsers();
+  const map = new Map<string, Awaited<ReturnType<typeof listUsers>>[0]>();
+  users.forEach((user) => {
+    map.set(user.id, user);
+  });
+  return map;
 };
 
 export const listPermissionSets = async () => {
@@ -489,6 +645,11 @@ export const listPermissionSets = async () => {
   }
 
   return permissionSets;
+};
+
+export const listPermissionSetArnsInSet = async () => {
+  const permissionSetArns = await listPermissionSets();
+  return new Set(permissionSetArns);
 };
 
 export const describePermissionSet = async (permissionSetArn: string) => {
@@ -523,6 +684,29 @@ export const describeAllPermissionSets = async () => {
   return Promise.all(describePermissionSetsPromises);
 };
 
+export const describeAllPermissionSetsInMap = async () => {
+  const permissionSets = await listPermissionSets();
+
+  const describePermissionSetsPromises = permissionSets.map((permissionSet) =>
+    describePermissionSet(permissionSet)
+  );
+
+  const permissionSetsDetail = await Promise.all(
+    describePermissionSetsPromises
+  );
+
+  const map = new Map<
+    string,
+    Awaited<ReturnType<typeof describePermissionSet>>
+  >();
+
+  permissionSetsDetail.forEach((permissionSet) => {
+    map.set(permissionSet.permissionSetArn!, permissionSet);
+  });
+
+  return map;
+};
+
 type ReturnedPrincipal = Awaited<ReturnType<typeof listPrincipals>>[0];
 
 type Data = {
@@ -534,6 +718,8 @@ type Data = {
   }[];
   principalDisplayName: string | null;
   permissionSetArns: string[];
+  awsAccountId?: string | null;
+  awsAccountName?: string | null;
 }[];
 
 export const detachAllPermissionSetsFromPrincipal = async (
@@ -545,32 +731,39 @@ export const detachAllPermissionSetsFromPrincipal = async (
     principalType
   );
 
-  console.log('accountAssignments: ', accountAssignments);
-
-  const permissionSetArns = accountAssignments.map(
-    (assg) => assg.permissionSetArn
-  ) as string[];
-
-  const detachPromises = permissionSetArns.map((permissionSetArn) =>
-    deleteAccountAssignment({
-      permissionSetArn,
-      principalId,
-      principalType,
-    })
-  );
+  const detachPromises = accountAssignments.map((assg) => {
+    return deleteAccountAssignment({
+      principalId: principalId,
+      principalType: principalType,
+      permissionSetArn: assg.permissionSetArn,
+      awsAccountId: assg.accountId,
+    });
+  });
 
   await Promise.all(detachPromises);
 };
 
-export const listAccountAssignmentsv0 = async () => {
-  // const principals = await listGroups();
-  const principals = await listPrincipals();
+export const listAccountAssignmentsv2 = async (
+  type: PrincipalType = PrincipalType.GROUP
+) => {
+  const principalsPromise =
+    type === PrincipalType.GROUP ? listGroups() : listUsers();
+
+  const awsAccountsPromise = listAccountsInMap();
+
+  const [principals, awsAccounts] = await Promise.all([
+    principalsPromise,
+    awsAccountsPromise,
+  ]);
+
+  const data: Data = [];
+
+  if (principals.length === 0 || awsAccounts.size === 0) return data;
+
   const principalsMap: Record<string, ReturnedPrincipal> = {};
   principals.forEach((principal) => {
     principalsMap[principal.id] = principal;
   });
-
-  const data: Data = [];
 
   const accountAssignmentsPromises = principals.map((principal) =>
     listAccountAssignmentsforPrincipal(principal.id, principal.principalType)
@@ -579,32 +772,35 @@ export const listAccountAssignmentsv0 = async () => {
   const accountAssignments = await Promise.all(accountAssignmentsPromises);
 
   const uniquePermissionSetArns = new Set<string>();
+  console.log('accountAssignments: ', accountAssignments);
 
   accountAssignments.forEach((assgs, idx) => {
     const principalId = principals[idx].id;
-    const assignment = assgs.filter((assg) => assg.principalId === principalId);
-    const permissionSetArns = assignment.map(
-      ({ permissionSetArn }) => permissionSetArn
+    const assignment = assgs.filter(
+      (assg) => assg.principalId === principalId && !!assg.accountId
     );
-    const filteredPermissionSetArns = permissionSetArns.filter(
-      Boolean
-    ) as string[];
 
-    filteredPermissionSetArns.forEach((permissionSetArn) => {
-      uniquePermissionSetArns.add(permissionSetArn);
+    const accountIdPsMap: Record<string, string[]> = {};
+
+    assignment.forEach((assg) => {
+      if (!accountIdPsMap[assg.accountId!]) {
+        accountIdPsMap[assg.accountId!] = [];
+      }
+      accountIdPsMap[assg.accountId!].push(assg.permissionSetArn);
+      uniquePermissionSetArns.add(assg.permissionSetArn);
     });
 
-    if (assignment.length > 0) {
-      // const principalId: string = assignment[0].principalId;
-
+    Object.entries(accountIdPsMap).forEach(([accountId, permissionSetArns]) => {
       data.push({
         principalId,
-        principalType: assignment[0].principalType as PrincipalType,
-        permissionSetArns: filteredPermissionSetArns,
+        principalType: principalsMap[principalId].principalType,
         permissionSets: [],
         principalDisplayName: principalsMap[principalId].displayName ?? null,
+        awsAccountId: accountId,
+        awsAccountName: awsAccounts.get(accountId)?.name,
+        permissionSetArns,
       });
-    }
+    });
   });
 
   const describePermissionSetsPromises = Array.from(
@@ -633,14 +829,15 @@ export const listAccountAssignmentsv0 = async () => {
 type CreateAccountAssignmentData = {
   permissionSetArn: string;
   principalId: string;
-  principalType: 'USER' | 'GROUP';
+  principalType: PrincipalType;
+  awsAccountId?: string;
 };
 
 export const createAccountAssignment = async (
   data: CreateAccountAssignmentData
 ) => {
   const { instanceArn } = await getIdentityInstanceOrThrow();
-  const { principalId, principalType, permissionSetArn } = data;
+  const { principalId, principalType, permissionSetArn, awsAccountId } = data;
 
   const { AccountAssignmentCreationStatus } = await ssoAdmin.send(
     new CreateAccountAssignmentCommand({
@@ -648,7 +845,7 @@ export const createAccountAssignment = async (
       PermissionSetArn: permissionSetArn,
       PrincipalId: principalId,
       PrincipalType: principalType,
-      TargetId: await getAccountId(),
+      TargetId: awsAccountId ?? (await getAccountId()),
       TargetType: 'AWS_ACCOUNT',
     })
   );
@@ -665,7 +862,7 @@ export const deleteAccountAssignment = async (
   data: DeleteAccountAssignmentData
 ) => {
   const { instanceArn } = await getIdentityInstanceOrThrow();
-  const { principalId, principalType, permissionSetArn } = data;
+  const { principalId, principalType, permissionSetArn, awsAccountId } = data;
 
   const { AccountAssignmentDeletionStatus } = await ssoAdmin.send(
     new DeleteAccountAssignmentCommand({
@@ -673,7 +870,7 @@ export const deleteAccountAssignment = async (
       PermissionSetArn: permissionSetArn,
       PrincipalId: principalId,
       PrincipalType: principalType,
-      TargetId: await getAccountId(),
+      TargetId: awsAccountId ?? (await getAccountId()),
       TargetType: 'AWS_ACCOUNT',
     })
   );
@@ -909,4 +1106,32 @@ export const describePrincipal = async (id: string, type: PrincipalType) => {
   }
 
   return describeUser(id);
+};
+
+export const getAwsAccountsAndPrincipalsMap = async () => {
+  const [awsAccountsMap, principalsMap] = await Promise.all([
+    listAccountsInMap(),
+    listPrincipalsInMap(),
+  ]);
+
+  return { awsAccountsMap, principalsMap };
+};
+
+export const getAwsAccountsPrincipalsPermissionSetsMap = async () => {
+  const [awsAccountsMap, principalsMap, permissionSetsMap] = await Promise.all([
+    listAccountsInMap(),
+    listPrincipalsInMap(),
+    describeAllPermissionSetsInMap(),
+  ]);
+
+  return { awsAccountsMap, principalsMap, permissionSetsMap };
+};
+
+export const getPrincipalsPermissionSetsMap = async () => {
+  const [principalsMap, permissionSetsMap] = await Promise.all([
+    listPrincipalsInMap(),
+    describeAllPermissionSetsInMap(),
+  ]);
+
+  return { principalsMap, permissionSetsMap };
 };

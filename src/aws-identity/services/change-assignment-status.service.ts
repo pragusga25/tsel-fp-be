@@ -4,12 +4,12 @@ import {
   AssignmentRequestNotFoundError,
   AssignmentRequestNotPendingError,
 } from '../errors';
-import { PermissionSetsData } from '../validations';
 
 type Data = {
-  permissionSets: PermissionSetsData;
+  permissionSetArns: string[];
   principalId: string;
   principalType: PrincipalType;
+  awsAccountId: string;
 };
 
 export const changeAssignmentStatusService = async (
@@ -48,22 +48,13 @@ export const changeAssignmentStatusService = async (
         respondedAt: new Date(),
       },
       select: {
-        permissionSets: true,
-        requester: {
-          select: {
-            principalId: true,
-            principalType: true,
-          },
-        },
+        permissionSetArns: true,
+        principalId: true,
+        principalType: true,
+        awsAccountId: true,
       },
     });
 
-    const data = {
-      permissionSets: res.permissionSets,
-      principalId: res.requester.principalId,
-      principalType: res.requester.principalType,
-    };
-
-    cb?.(data as Data);
+    cb?.(res);
   });
 };

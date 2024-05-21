@@ -1,23 +1,28 @@
+import { PrincipalType } from '@prisma/client';
 import { db } from '../../db';
 import {
   describeAllPermissionSetsInMap,
   listAccountsInMap,
-  listGroupsInMap,
+  listUsersInMap,
 } from '../helper';
 
-export const listAssignmentsService = async () => {
-  const accountAssignments = await db.accountAssignment.findMany({});
+export const listUserAssignmentsService = async () => {
+  const accountAssignments = await db.accountAssignment.findMany({
+    where: {
+      principalType: PrincipalType.USER,
+    },
+  });
 
   if (accountAssignments.length === 0) {
     return { result: [] };
   }
   const awsAccountsPromise = listAccountsInMap();
-  const groupsPromise = listGroupsInMap();
+  const usersPromise = listUsersInMap();
   const permissionSetsPromise = describeAllPermissionSetsInMap();
 
-  const [awsAccountsMap, groupsMap, permissionSetsMap] = await Promise.all([
+  const [awsAccountsMap, usersMap, permissionSetsMap] = await Promise.all([
     awsAccountsPromise,
-    groupsPromise,
+    usersPromise,
     permissionSetsPromise,
   ]);
 
@@ -25,7 +30,7 @@ export const listAssignmentsService = async () => {
     ({ permissionSetArns, awsAccountId, ...rest }) => {
       const { principalId } = rest;
 
-      const group = groupsMap.get(principalId);
+      const user = usersMap.get(principalId);
       let permissionSets = permissionSetArns.map((arn) => {
         const detail = permissionSetsMap.get(arn);
 
@@ -44,7 +49,7 @@ export const listAssignmentsService = async () => {
         awsAccountId,
         awsAccountName,
         permissionSets,
-        principalDisplayName: group?.displayName,
+        principalDisplayName: user?.displayName,
       };
     }
   );

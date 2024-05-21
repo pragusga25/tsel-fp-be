@@ -24,24 +24,6 @@ export const deleteAssignmentService = async ({
   try {
     const { principalId, principalType } = assignment;
     await detachAllPermissionSetsFromPrincipal(principalId, principalType);
-    // const permissionSetsFromAws = await describePermissionSetsInPrincipal(
-    //   principalId,
-    //   principalType
-    // );
-
-    // const permissionSetArnsFromAws = permissionSetsFromAws.map(
-    //   (ps) => ps!.permissionSetArn
-    // ) as string[];
-
-    // const removePromises = permissionSetArnsFromAws.map((ps) =>
-    //   deleteAccountAssignment({
-    //     permissionSetArn: ps,
-    //     principalId,
-    //     principalType,
-    //   })
-    // );
-
-    // await Promise.all(removePromises);
   } catch {}
 
   await db.accountAssignment.delete({

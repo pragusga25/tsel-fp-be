@@ -3,32 +3,40 @@ import { OperationFailedError } from '../errors';
 import { RequestAssignmentData } from '../validations';
 
 export const requestAssignmentService = async (data: RequestAssignmentData) => {
-  const requesterPrincipal = await db.user.findUnique({
+  const { requesterId, principalAwsAccountUserId } = data;
+  const requester = await db.user.findUnique({
     where: {
-      id: data.requesterId,
-    },
-    select: {
-      principalId: true,
-      principalType: true,
-      principalDisplayName: true,
+      id: requesterId,
     },
   });
 
-  if (!requesterPrincipal) {
+  if (!requester) {
     throw new OperationFailedError(['Requester not found']);
   }
 
-  if (!requesterPrincipal.principalId || !requesterPrincipal.principalType) {
-    throw new OperationFailedError(['Requester principal not found']);
+  const principalAwsAccount = await db.principalAwsAccountUser.findFirst({
+    where: {
+      id: principalAwsAccountUserId,
+      userId: requesterId,
+    },
+    select: {
+      principalType: true,
+      principalId: true,
+      awsAccountId: true,
+    },
+  });
+
+  if (!principalAwsAccount) {
+    throw new OperationFailedError(['PrincipalAwsAccountUser not found']);
   }
+
+  const { principalAwsAccountUserId: n, ...rest } = data;
 
   const result = await db.assignmentRequest.create({
     data: {
-      ...data,
+      ...rest,
+      ...principalAwsAccount,
       requestedAt: new Date(),
-      principalId: requesterPrincipal.principalId,
-      principalType: requesterPrincipal.principalType,
-      principalDisplayName: requesterPrincipal.principalDisplayName,
     },
     select: {
       id: true,

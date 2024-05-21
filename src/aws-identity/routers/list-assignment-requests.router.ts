@@ -7,7 +7,7 @@ export const listAssignmentRequestsRouter = Router();
 listAssignmentRequestsRouter.get(
   '/assignment-requests.list',
   adminOnlyMiddleware,
-  asyncErrorHandler(async (req: IAuthRequest, res) => {
+  asyncErrorHandler(async (_req: IAuthRequest, res) => {
     const result = await listAssignmentRequestsService();
 
     res.status(200).send({

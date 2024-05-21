@@ -56,4 +56,14 @@ export class HttpUtil {
       path: '/',
     });
   }
+
+  static deleteCookie(res: Response) {
+    res.cookie('refreshToken', '', {
+      httpOnly: true,
+      sameSite: 'none',
+      secure: config.NODE_ENV === 'production',
+      maxAge: 0,
+      path: '/',
+    });
+  }
 }

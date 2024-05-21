@@ -36,3 +36,5 @@ export * from './create-group-principal.service';
 export * from './update-principal-group.service';
 export * from './update-principal-user.service';
 export * from './list-aws-accounts.service';
+export * from './list-group-assignments.service';
+export * from './list-user-assignments.service';

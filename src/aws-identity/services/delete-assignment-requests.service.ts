@@ -1,4 +1,4 @@
-import { Role } from '@prisma/client';
+import { AssignmentRequestStatus, Role } from '@prisma/client';
 import { db } from '../../db';
 import { DeleteAssignmentRequestsData } from '../validations';
 
@@ -15,9 +15,9 @@ export const deleteAssignmentRequestsService = async (
       },
       status:
         role === Role.USER
-          ? 'PENDING'
+          ? AssignmentRequestStatus.PENDING
           : {
-              not: 'PENDING',
+              not: AssignmentRequestStatus.PENDING,
             },
     },
   });

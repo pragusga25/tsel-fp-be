@@ -1,3 +1,4 @@
+import { PrincipalType } from '@prisma/client';
 import { db } from '../../db';
 import {
   describeAllPermissionSetsInMap,
@@ -5,8 +6,12 @@ import {
   listGroupsInMap,
 } from '../helper';
 
-export const listAssignmentsService = async () => {
-  const accountAssignments = await db.accountAssignment.findMany({});
+export const listGroupAssignmentsService = async () => {
+  const accountAssignments = await db.accountAssignment.findMany({
+    where: {
+      principalType: PrincipalType.GROUP,
+    },
+  });
 
   if (accountAssignments.length === 0) {
     return { result: [] };

@@ -3,7 +3,7 @@ import { OperationFailedError } from '../errors';
 import {
   createAccountAssignment,
   deleteAccountAssignment,
-  listAccountAssignments,
+  listAccountAssignmentsv2,
 } from '../helper';
 
 export const schedulePushAssignmentsService = async () => {
@@ -11,7 +11,6 @@ export const schedulePushAssignmentsService = async () => {
   const now = new Date(currentDate);
 
   const assignmentsPromise = db.accountAssignment.findMany();
-  const awsAssignmentsPromise = listAccountAssignments();
 
   const freezeTimePromise = db.freezeTime.findFirst({
     where: {
@@ -36,7 +35,7 @@ export const schedulePushAssignmentsService = async () => {
     ]);
   }
 
-  const awsAssignments = await listAccountAssignments();
+  const awsAssignments = await listAccountAssignmentsv2();
 
   const dbPrincipalIds = dbAssignments.map(
     (assignment) => assignment.principalId
@@ -49,8 +48,7 @@ export const schedulePushAssignmentsService = async () => {
 
   for (let i = 0; i < dbAssignments.length; i++) {
     const dbAssignment = dbAssignments[i];
-    dbAssignment.permissionSets.forEach((ps) => {
-      const arn = (ps as { arn: string }).arn;
+    dbAssignment.permissionSetArns.forEach((arn) => {
       const key = `${dbAssignment.principalType}-${dbAssignment.principalId}-${arn}`;
       accountAssignmentSet.add(key);
     });
@@ -85,9 +83,7 @@ export const schedulePushAssignmentsService = async () => {
   const createAccountAssignmentsPromises: Promise<void>[] = [];
   for (let i = 0; i < dbAssignments.length; i++) {
     const dbAssignment = dbAssignments[i];
-    const permissionSetArns = dbAssignment.permissionSets.map(
-      (ps) => (ps as { arn: string }).arn!
-    );
+    const permissionSetArns = dbAssignment.permissionSetArns;
 
     permissionSetArns.forEach((psa) => {
       const key = `${dbAssignment.principalType}-${dbAssignment.principalId}-${psa}`;

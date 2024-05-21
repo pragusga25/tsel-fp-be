@@ -20,7 +20,7 @@ const envVarsSchema = object({
   AWS_REGION: optional(string(), 'ap-southeast-3'),
   AWS_ACCESS_KEY_ID: string(),
   AWS_SECRET_ACCESS_KEY: string(),
-  AWS_SESSION_TOKEN: string(),
+  AWS_SESSION_TOKEN: optional(string()),
   DATABASE_URL: string(),
   NODE_ENV: optional(picklist(['development', 'production']), 'development'),
   API_KEY: string('API key must be a string', [

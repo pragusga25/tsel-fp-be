@@ -8,7 +8,7 @@ freezeAssignmentsRouter.post(
   '/assignments.freeze',
   apiKeyMiddleware,
   asyncErrorHandler(async (req: IAuthRequest, res) => {
-    await freezeAssignmentsService();
+    // await freezeAssignmentsService();
     res.status(200).send({
       ok: true,
     });

@@ -10,23 +10,18 @@ export const deletePrincipalService = async (data: DeletePrincipalData) => {
     await detachAllPermissionSetsFromPrincipal(data.id, data.type).catch();
     await deletePrincipal(data).catch();
     await db.accountAssignment
-      .delete({
+      .deleteMany({
         where: {
           principalId: data.id,
           principalType: data.type,
         },
       })
       .catch();
-    await db.user
-      .updateMany({
+    await db.principalAwsAccountUser
+      .deleteMany({
         where: {
           principalId: data.id,
           principalType: data.type,
-        },
-        data: {
-          principalId: null,
-          principalType: null,
-          principalDisplayName: null,
         },
       })
       .catch();

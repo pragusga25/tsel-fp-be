@@ -51,6 +51,12 @@ export const PermissionSetArnSchema = string(
   [minLength(1, 'Please enter the permission set ARN.')]
 );
 
+export const PermissionSetArnsRequiredSchema = array(
+  PermissionSetArnSchema,
+  'The input must be an array of permission sets.',
+  [minLength(1, 'Please input at least one permission set.')]
+);
+
 export const PermissionSetNameSchema = string(
   'Permission set name must be a string.',
   [minLength(1, 'Please enter the permission set name.')]
@@ -67,10 +73,15 @@ export const PermissionSetsSchema = array(
   [minLength(1, 'Please input at least one permission set.')]
 );
 
+export const AwsAccountIdSchema = string('AWS account ID must be a string.', [
+  minLength(1, 'Please enter the AWS account ID.'),
+]);
+
 export const CreateAccountAssignmentSchema = object({
-  permissionSets: PermissionSetsSchema,
+  permissionSetArns: PermissionSetArnsRequiredSchema,
   principalId: PrincipalIdSchema,
   principalType: PrincipalTypeSchema,
+  awsAccountId: AwsAccountIdSchema,
 });
 
 export const IdentityInstanceSchema = object({
@@ -81,9 +92,8 @@ export const IdentityInstanceSchema = object({
 });
 
 export const RequestAssignmentSchema = object({
-  permissionSets: PermissionSetsSchema,
+  permissionSetArns: PermissionSetArnsRequiredSchema,
   note: NoteSchema,
-
   operation: optional(
     picklist(
       Object.values(AssignmentOperation),
@@ -91,6 +101,9 @@ export const RequestAssignmentSchema = object({
     ),
     AssignmentOperation.ATTACH
   ),
+  principalAwsAccountUserId: string('Principal id must be a string', [
+    minLength(1, 'Please enter the principal id.'),
+  ]),
 });
 
 const IdsSchema = array(
@@ -119,12 +132,9 @@ export const PullAssignmentSchema = object({
 export const CreateFreezeTimeSchema = transform(
   object(
     {
-      // creatorId: string('Creator ID must be a string.', [
-      //   minLength(1, 'Please enter the creator ID.'),
-      // ]),
       note: NoteSchema,
       target: picklist(Object.values(FreezeTimeTarget), 'Invalid target.'),
-      permissionSets: PermissionSetsSchema,
+      permissionSetArns: PermissionSetArnsRequiredSchema,
       startTime: string(
         'Please enter a valid start time in the format yyyy-mm-dd.',
         [
@@ -196,7 +206,7 @@ export const CountAssignmentRequestsSchema = object({
 
 export const EditAccountAssignmentSchema = object({
   id: string('Id must be a string', [minLength(1)]),
-  permissionSets: PermissionSetsSchema,
+  permissionSetArns: PermissionSetArnsRequiredSchema,
 });
 
 export const PushOneAssignmentSchema = object({

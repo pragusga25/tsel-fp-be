@@ -9,6 +9,7 @@ import {
   deleteAccountAssignment,
   listAccountAssignments,
   listGroups,
+  listPermissionSetArnsInSet,
   listPrincipals,
   listUsers,
 } from '../helper';
@@ -31,10 +32,10 @@ export const directFreezeAssignmentsService = async (
     throw new AccountAssignmentInAWSNotFoundError();
   }
 
-  const { target, permissionSets } = data;
-
-  const permissionSetArnsFreeze: string[] = permissionSets.map(
-    (permissionSet) => (permissionSet as { arn: string }).arn
+  let { target, permissionSetArns: permissionSetArnsFreeze } = data;
+  const awsPermissionSetArns = await listPermissionSetArnsInSet();
+  permissionSetArnsFreeze = permissionSetArnsFreeze.filter((permissionSetArn) =>
+    awsPermissionSetArns.has(permissionSetArn)
   );
 
   const principalsMap = {
@@ -47,8 +48,6 @@ export const directFreezeAssignmentsService = async (
 
   const deleteAccountAssignmentPromise: Promise<unknown>[] = [];
   const memo = new Set<string>();
-
-  console.log('AWS ASSIGNMENTS: ', awsAssignmentsPromise);
 
   for (let i = 0; i < awsAssignmentsPromise.length; i++) {
     const awsAssignment = awsAssignmentsPromise[i];
@@ -67,7 +66,7 @@ export const directFreezeAssignmentsService = async (
     permissionSetArnsAws.forEach((permissionSetArn) => {
       if (permissionSetArnsFreeze.includes(permissionSetArn)) {
         memo.add(
-          `${awsAssignment.principalId}-${awsAssignment.principalType}-${permissionSetArn}`
+          `${awsAssignment.principalId}#${awsAssignment.principalType}#${permissionSetArn}`
         );
         return;
       }
@@ -86,8 +85,8 @@ export const directFreezeAssignmentsService = async (
   for (let i = 0; i < principals.length; i++) {
     const principal = principals[i];
 
-    permissionSetArnsFreeze.forEach((permissionSet) => {
-      const key = `${principal.id}-${principal.principalType}-${permissionSet}`;
+    permissionSetArnsFreeze.forEach((arn) => {
+      const key = `${principal.id}#${principal.principalType}#${arn}`;
       if (memo.has(key)) {
         return;
       }
@@ -95,7 +94,7 @@ export const directFreezeAssignmentsService = async (
         createAccountAssignment({
           principalId: principal.id,
           principalType: principal.principalType,
-          permissionSetArn: permissionSet,
+          permissionSetArn: arn,
         })
       );
     });

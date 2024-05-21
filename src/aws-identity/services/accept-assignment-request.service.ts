@@ -1,5 +1,9 @@
 import { AssignmentOperation, AssignmentRequestStatus } from '@prisma/client';
-import { createAccountAssignment, deleteAccountAssignment } from '../helper';
+import {
+  createAccountAssignment,
+  deleteAccountAssignment,
+  listPermissionSetArnsInSet,
+} from '../helper';
 import { changeAssignmentStatusService } from './change-assignment-status.service';
 
 export const acceptAssignmentRequestService = async (
@@ -11,21 +15,24 @@ export const acceptAssignmentRequestService = async (
     responderId,
     id,
     AssignmentRequestStatus.ACCEPTED,
-    async (data) => {
-      const accountAssignmentPromises = data.permissionSets.map(
-        (permissionSet) => {
+    async ({ permissionSetArns: psa, ...rest }) => {
+      const permissionSetArnssSet = await listPermissionSetArnsInSet();
+      const permissionSetArns = psa.filter((permissionSetArn) =>
+        permissionSetArnssSet.has(permissionSetArn)
+      );
+
+      const accountAssignmentPromises = permissionSetArns.map(
+        (permissionSetArn) => {
           if (operation === AssignmentOperation.ATTACH) {
             return createAccountAssignment({
-              permissionSetArn: permissionSet.arn,
-              principalId: data.principalId,
-              principalType: data.principalType,
+              permissionSetArn,
+              ...rest,
             });
           }
 
           deleteAccountAssignment({
-            permissionSetArn: permissionSet.arn,
-            principalId: data.principalId,
-            principalType: data.principalType,
+            permissionSetArn,
+            ...rest,
           });
         }
       );

@@ -1,11 +1,19 @@
-import { deleteUsersRouter } from './delete-users.router';
-import { listUsersRouter } from './list-users.router';
-import { updateUserPasswordRouter } from './update-user-password.router';
-import { updateUserPrincipalRouter } from './update-user-principal.router';
+import { createAccountAdminRouter } from './create-account-admin.router';
+import { createAccountUserRouter } from './create-account-user.router';
+import { deleteAccountsRouter } from './delete-accounts.router';
+import { listAccountAdminsRouter } from './list-account-admins.router';
+import { listAccountUsersRouter } from './list-account-users.router';
+import { meRouter } from './me.router';
+import { updateAccountPasswordRouter } from './update-account-password.router';
+import { updateAccountUserRouter } from './update-account-user.router';
 
 export const userRouters = [
-  listUsersRouter,
-  deleteUsersRouter,
-  updateUserPasswordRouter,
-  updateUserPrincipalRouter,
+  createAccountAdminRouter,
+  createAccountUserRouter,
+  deleteAccountsRouter,
+  listAccountAdminsRouter,
+  listAccountUsersRouter,
+  updateAccountPasswordRouter,
+  updateAccountUserRouter,
+  meRouter,
 ];

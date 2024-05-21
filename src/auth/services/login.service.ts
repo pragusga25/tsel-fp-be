@@ -14,8 +14,6 @@ export const loginService = async (data: LoginData) => {
       username: true,
       name: true,
       role: true,
-      principalId: true,
-      principalType: true,
       password: true,
     },
   });
@@ -24,14 +22,16 @@ export const loginService = async (data: LoginData) => {
     throw new WrongCredentialsError();
   }
 
+  const { password: pw, ...rest } = user;
+
   const passwordMatch = await bcrypt.compare(password, user.password);
 
   if (!passwordMatch) {
     throw new WrongCredentialsError();
   }
 
-  const accessToken = JwtUtil.generateAccessToken(user);
-  const refreshToken = JwtUtil.generateRefreshToken(user);
+  const accessToken = JwtUtil.generateAccessToken(rest);
+  const refreshToken = JwtUtil.generateRefreshToken(rest);
   const { password: hp, ...restUser } = user;
 
   return { result: { accessToken, refreshToken, user: restUser } };

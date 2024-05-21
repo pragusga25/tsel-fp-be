@@ -1,6 +1,6 @@
 import { db } from '../../db';
 import { PullFailedError } from '../errors';
-import { listAccountAssignments } from '../helper';
+import { listAccountAssignmentsv2 } from '../helper';
 import { PullAssignmentData } from '../validations';
 
 export const pullAssignmentsService = async ({ force }: PullAssignmentData) => {
@@ -27,14 +27,24 @@ export const pullAssignmentsService = async ({ force }: PullAssignmentData) => {
     }
   }
 
-  const data = await listAccountAssignments();
-  console.log(data);
+  const awsSccountAssignments = await listAccountAssignmentsv2();
 
   await db.$transaction(async (trx) => {
     await trx.accountAssignment.deleteMany();
-
     await trx.accountAssignment.createMany({
-      data,
+      data: awsSccountAssignments.map(
+        ({
+          awsAccountName,
+          principalDisplayName,
+          awsAccountId,
+          permissionSets,
+          ...rest
+        }) => ({
+          ...rest,
+          awsAccountId: awsAccountId!,
+          permissionSetArns: permissionSets.map((ps) => ps.arn),
+        })
+      ),
     });
   });
 };
