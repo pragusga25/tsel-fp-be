@@ -1,5 +1,4 @@
 import { FreezeTimeTarget } from '@prisma/client';
-import { db } from '../../db';
 import {
   AccountAssignmentInAWSNotFoundError,
   OperationFailedError,
@@ -7,13 +6,12 @@ import {
 import {
   createAccountAssignment,
   deleteAccountAssignment,
-  listAccountAssignments,
-  listGroups,
+  listAccountAssignmentsv2,
   listPermissionSetArnsInSet,
-  listPrincipals,
-  listUsers,
 } from '../helper';
 import { CreateFreezeTimeData } from '../validations';
+import { db } from '../../db';
+import { sleep } from '../../__shared__/utils';
 
 export const directFreezeAssignmentsService = async (
   data: CreateFreezeTimeData
@@ -26,28 +24,36 @@ export const directFreezeAssignmentsService = async (
     ]);
   }
 
-  const awsAssignmentsPromise = await listAccountAssignments();
+  let awsAssignmentsPromise = await listAccountAssignmentsv2();
 
   if (awsAssignmentsPromise.length === 0) {
     throw new AccountAssignmentInAWSNotFoundError();
   }
 
-  let { target, permissionSetArns: permissionSetArnsFreeze } = data;
+  let {
+    target,
+    permissionSetArns: permissionSetArnsFreeze,
+    excludedPrincipals,
+  } = data;
+
   const awsPermissionSetArns = await listPermissionSetArnsInSet();
   permissionSetArnsFreeze = permissionSetArnsFreeze.filter((permissionSetArn) =>
     awsPermissionSetArns.has(permissionSetArn)
   );
 
-  const principalsMap = {
-    [FreezeTimeTarget.ALL]: listPrincipals,
-    [FreezeTimeTarget.GROUP]: listGroups,
-    [FreezeTimeTarget.USER]: listUsers,
-  };
+  const permissionSetArnsFreezeSet = new Set(permissionSetArnsFreeze);
 
-  const principals = await principalsMap[target]();
+  if (excludedPrincipals && excludedPrincipals.length > 0) {
+    const excKeys = new Set(
+      excludedPrincipals.map(({ id, type }) => `${id}#${type}`)
+    );
 
-  const deleteAccountAssignmentPromise: Promise<unknown>[] = [];
-  const memo = new Set<string>();
+    awsAssignmentsPromise = awsAssignmentsPromise.filter((awsAssignment) => {
+      return !excKeys.has(
+        `${awsAssignment.principalId}#${awsAssignment.principalType}`
+      );
+    });
+  }
 
   for (let i = 0; i < awsAssignmentsPromise.length; i++) {
     const awsAssignment = awsAssignmentsPromise[i];
@@ -62,46 +68,40 @@ export const directFreezeAssignmentsService = async (
     const permissionSetArnsAws = awsAssignment.permissionSets.map(
       (permissionSet) => permissionSet.arn
     );
+    const permissionSetArnsAwsSet = new Set(permissionSetArnsAws);
 
-    permissionSetArnsAws.forEach((permissionSetArn) => {
-      if (permissionSetArnsFreeze.includes(permissionSetArn)) {
-        memo.add(
-          `${awsAssignment.principalId}#${awsAssignment.principalType}#${permissionSetArn}`
-        );
-        return;
+    // Delete all assignments that are not in the freeze list
+    for (let j = 0; j < permissionSetArnsAws.length; j++) {
+      const permissionSetArn = permissionSetArnsAws[j];
+      if (permissionSetArnsFreezeSet.has(permissionSetArn)) {
+        continue;
       }
 
-      deleteAccountAssignmentPromise.push(
-        deleteAccountAssignment({
-          principalId: awsAssignment.principalId,
-          principalType: awsAssignment.principalType,
-          permissionSetArn: permissionSetArn,
-        })
-      );
-    });
-  }
+      await deleteAccountAssignment({
+        principalId: awsAssignment.principalId,
+        principalType: awsAssignment.principalType,
+        permissionSetArn: permissionSetArn,
+        awsAccountId: awsAssignment.awsAccountId!,
+      });
 
-  const createAccountAssignmentPromise: Promise<unknown>[] = [];
-  for (let i = 0; i < principals.length; i++) {
-    const principal = principals[i];
+      await sleep(300);
+    }
 
-    permissionSetArnsFreeze.forEach((arn) => {
-      const key = `${principal.id}#${principal.principalType}#${arn}`;
-      if (memo.has(key)) {
-        return;
+    // Create all assignments that are in the freeze list
+    for (let j = 0; j < permissionSetArnsFreeze.length; j++) {
+      const permissionSetArnFreeze = permissionSetArnsFreeze[j];
+      if (permissionSetArnsAwsSet.has(permissionSetArnFreeze)) {
+        continue;
       }
-      createAccountAssignmentPromise.push(
-        createAccountAssignment({
-          principalId: principal.id,
-          principalType: principal.principalType,
-          permissionSetArn: arn,
-        })
-      );
-    });
-  }
 
-  await Promise.all([
-    ...deleteAccountAssignmentPromise,
-    ...createAccountAssignmentPromise,
-  ]);
+      await createAccountAssignment({
+        principalId: awsAssignment.principalId,
+        principalType: awsAssignment.principalType,
+        permissionSetArn: permissionSetArnFreeze,
+        awsAccountId: awsAssignment.awsAccountId!,
+      });
+
+      await sleep(300);
+    }
+  }
 };

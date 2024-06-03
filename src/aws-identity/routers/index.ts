@@ -36,6 +36,8 @@ import { updatePrincipalGroupRouter } from './update-principal-group.router';
 import { listAwsAccountsRouter } from './list-aws-accounts.router';
 import { listUserAssignmentsRouter } from './list-user-assignments.router';
 import { listGroupAssignmentsRouter } from './list-group-assignments.router';
+import { schedulerRollbackAssignmentsRouter } from './scheduler-rollback-assignments.router';
+import { schedulerFreezeAssignmentsRouter } from './scheduler-freeze-assignments.router';
 
 export const awsIdentityRouters = [
   listGroupPrincipalsRouter,
@@ -76,4 +78,6 @@ export const awsIdentityRouters = [
   listAwsAccountsRouter,
   listUserAssignmentsRouter,
   listGroupAssignmentsRouter,
+  schedulerFreezeAssignmentsRouter,
+  schedulerRollbackAssignmentsRouter,
 ];

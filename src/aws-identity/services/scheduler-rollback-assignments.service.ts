@@ -1,20 +1,17 @@
 import { Response } from 'express';
-import { getLocaleDateString } from '../../__shared__/utils';
 import { db } from '../../db';
 import { OperationFailedError } from '../errors';
 import { pushAssignmentsService } from './push-assignments.service';
 
-export const schedulePushAssignmentsService = async (res?: Response) => {
-  const currentDate = getLocaleDateString(new Date(), {
-    format: 'yyyy-mm-dd',
-  });
-  const now = new Date(currentDate);
-
+export const schedulerRollbackAssignmentsService = async (
+  name: string,
+  res?: Response
+) => {
   const assignmentsPromise = db.accountAssignment.findMany();
 
-  const freezeTimePromise = db.freezeTime.findFirst({
+  const freezeTimePromise = db.freezeTime.findUnique({
     where: {
-      AND: [{ startTime: { lte: now } }, { endTime: { gt: now } }],
+      name,
     },
   });
 
@@ -22,8 +19,6 @@ export const schedulePushAssignmentsService = async (res?: Response) => {
     assignmentsPromise,
     freezeTimePromise,
   ]);
-
-  console.log('FREEZE TIME: ', freezeTime);
 
   if (dbAssignments.length === 0) {
     throw new OperationFailedError([

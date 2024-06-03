@@ -90,13 +90,18 @@ model FreezeTime {
   id        String   @id @default(cuid())
   startTime DateTime
   endTime   DateTime
-  note      String?
+  name      String   @unique
 
   target            FreezeTimeTarget @default(ALL)
   permissionSetArns String[]
 
   creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   creatorId String
+
+  excludedPrincipals Json[]
+
+  isExecutedAtStart Boolean @default(false)
+  isExecutedAtEnd   Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

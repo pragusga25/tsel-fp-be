@@ -11,20 +11,18 @@ import {
   listPermissionSetArnsInSet,
 } from '../helper';
 import { ExcludedPrincipals } from '../types';
-import { getLocaleDateString, sleep } from '../../__shared__/utils';
+import { sleep } from '../../__shared__/utils';
 import { Response } from 'express';
 
-export const freezeAssignmentsService = async (res?: Response) => {
-  const currentDate = getLocaleDateString(new Date(), {
-    format: 'yyyy-mm-ddThh:MM',
-  });
-  const now = new Date(currentDate);
-
+export const schedulerFreezeAssignmentsService = async (
+  name: string,
+  res?: Response
+) => {
   const assignmentPromise = db.accountAssignment.findFirst();
 
-  const freezeTimePromise = db.freezeTime.findFirst({
+  const freezeTimePromise = db.freezeTime.findUnique({
     where: {
-      AND: [{ startTime: { lte: now } }, { endTime: { gt: now } }],
+      name,
     },
   });
 

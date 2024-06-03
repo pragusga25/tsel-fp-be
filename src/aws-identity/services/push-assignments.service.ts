@@ -1,3 +1,4 @@
+import { sleep } from '../../__shared__/utils';
 import { db } from '../../db';
 import { OperationFailedError } from '../errors';
 import {
@@ -25,11 +26,13 @@ export const pushAssignmentsService = async () => {
     return key;
   });
 
+  const dbKeysSet = new Set(dbKeys);
+
   // filter out assignments that are not in the database
   const awsAssignmentsFiltered = awsAssignments.filter((assignment) => {
     const key = `${assignment.principalId}#${assignment.awsAccountId}`;
 
-    return dbKeys.includes(key);
+    return dbKeysSet.has(key);
   });
 
   // create a set of account assignments
@@ -47,9 +50,6 @@ export const pushAssignmentsService = async () => {
   // create a set of keys that were not deleted
   const notDeletedMemo = new Set<string>();
 
-  // create an array of promises to delete account assignments
-  const deleteAccountAssignmentsPromises: Promise<void>[] = [];
-
   // for each assignment in the filtered AWS assignments, check if the key is in the set of account assignments
   // if it is not, delete the account assignment
   for (let i = 0; i < awsAssignmentsFiltered.length; i++) {
@@ -57,56 +57,48 @@ export const pushAssignmentsService = async () => {
     const permissionSetArns = awsAssignmentFiltered.permissionSets.map(
       (ps) => ps.arn
     );
-    permissionSetArns.forEach((psa) => {
+
+    for (let j = 0; j < permissionSetArns.length; j++) {
+      const psa = permissionSetArns[j];
       const key = `${awsAssignmentFiltered.principalId}-${awsAssignmentFiltered.awsAccountId}-${psa}`;
 
       if (accountAssignmentSet.has(key)) {
         notDeletedMemo.add(key);
-        return;
+        continue;
       }
 
-      deleteAccountAssignmentsPromises.push(
-        deleteAccountAssignment({
-          permissionSetArn: psa,
-          principalId: awsAssignmentFiltered.principalId,
-          principalType: awsAssignmentFiltered.principalType,
-          awsAccountId: awsAssignmentFiltered.awsAccountId!,
-        })
-      );
-    });
+      await deleteAccountAssignment({
+        permissionSetArn: psa,
+        principalId: awsAssignmentFiltered.principalId,
+        principalType: awsAssignmentFiltered.principalType,
+        awsAccountId: awsAssignmentFiltered.awsAccountId!,
+      });
+
+      await sleep(500);
+    }
   }
 
-  // create an array of promises to create account assignments
-  const createAccountAssignmentsPromises: Promise<void>[] = [];
-
-  // for each assignment in the database, check if the key is in the set of not deleted keys
-  // if it is not, create the account assignment
   for (let i = 0; i < dbAssignments.length; i++) {
     const dbAssignment = dbAssignments[i];
     const permissionSetArns = dbAssignment.permissionSetArns;
 
-    permissionSetArns.forEach((psa) => {
+    for (let j = 0; j < permissionSetArns.length; j++) {
+      const psa = permissionSetArns[j];
       const key = `${dbAssignment.principalId}-${dbAssignment.awsAccountId}-${psa}`;
+
       if (notDeletedMemo.has(key)) {
-        return;
+        continue;
       }
 
-      createAccountAssignmentsPromises.push(
-        createAccountAssignment({
-          permissionSetArn: psa,
-          principalId: dbAssignment.principalId,
-          principalType: dbAssignment.principalType,
-          awsAccountId: dbAssignment.awsAccountId,
-        })
-      );
-    });
+      await createAccountAssignment({
+        permissionSetArn: psa,
+        principalId: dbAssignment.principalId,
+        principalType: dbAssignment.principalType,
+        awsAccountId: dbAssignment.awsAccountId,
+      });
+      await sleep(500);
+    }
   }
-
-  // wait for all promises to resolve
-  await Promise.all([
-    ...deleteAccountAssignmentsPromises,
-    ...createAccountAssignmentsPromises,
-  ]);
 
   // update the last pushed at date for all account assignments
   await db.accountAssignment.updateMany({

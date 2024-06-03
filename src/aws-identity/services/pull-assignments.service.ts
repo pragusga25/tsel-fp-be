@@ -29,6 +29,23 @@ export const pullAssignmentsService = async ({ force }: PullAssignmentData) => {
 
   const awsSccountAssignments = await listAccountAssignmentsv2();
 
+  // await db.accountAssignment.deleteMany();
+  // await db.accountAssignment.createMany({
+  //   data: awsSccountAssignments.map(
+  //     ({
+  //       awsAccountName,
+  //       principalDisplayName,
+  //       awsAccountId,
+  //       permissionSets,
+  //       ...rest
+  //     }) => ({
+  //       ...rest,
+  //       awsAccountId: awsAccountId!,
+  //       permissionSetArns: permissionSets.map((ps) => ps.arn),
+  //     })
+  //   ),
+  // });
+
   await db.$transaction(async (trx) => {
     await trx.accountAssignment.deleteMany();
     await trx.accountAssignment.createMany({

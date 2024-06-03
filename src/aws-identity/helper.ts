@@ -1,22 +1,4 @@
-import {
-  SSOAdminClient,
-  ListInstancesCommand,
-  InstanceMetadata,
-  ListAccountAssignmentsForPrincipalCommand,
-  AccountAssignmentForPrincipal,
-  DescribePermissionSetCommand,
-  CreateAccountAssignmentCommand,
-  ListPermissionSetsCommand,
-  DeleteAccountAssignmentCommand,
-  ListAccountAssignmentsCommand,
-} from '@aws-sdk/client-sso-admin';
-import { config } from '../__shared__/config';
-import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
-import {
-  OrganizationsClient,
-  ListAccountsCommand,
-  Account,
-} from '@aws-sdk/client-organizations';
+import { IAMClient } from '@aws-sdk/client-iam';
 import {
   CreateGroupCommand,
   CreateUserCommand,
@@ -24,22 +6,44 @@ import {
   DeleteUserCommand,
   DescribeGroupCommand,
   DescribeUserCommand,
-  Group,
+  type Group,
   IdentitystoreClient,
   ListGroupsCommand,
   ListUsersCommand,
   UpdateGroupCommand,
   UpdateUserCommand,
-  User,
+  type User,
+  ListGroupMembershipsCommand,
+  CreateGroupMembershipCommand,
+  DeleteGroupMembershipCommand,
 } from '@aws-sdk/client-identitystore';
+import {
+  type Account,
+  ListAccountsCommand,
+  OrganizationsClient,
+} from '@aws-sdk/client-organizations';
+import {
+  type AccountAssignmentForPrincipal,
+  CreateAccountAssignmentCommand,
+  DeleteAccountAssignmentCommand,
+  DescribePermissionSetCommand,
+  type InstanceMetadata,
+  ListAccountAssignmentsCommand,
+  ListAccountAssignmentsForPrincipalCommand,
+  ListInstancesCommand,
+  ListPermissionSetsCommand,
+  SSOAdminClient,
+} from '@aws-sdk/client-sso-admin';
+import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { PrincipalType } from '@prisma/client';
+import { config } from '../__shared__/config';
+import { db } from '../db';
 import {
   IdentityInstanceNotFoundError,
   OperationFailedError,
   PermissionSetNotFoundError,
 } from './errors';
-import { db } from '../db';
-import { PrincipalType } from '@prisma/client';
-import {
+import type {
   CreateGroupPrincipalData,
   CreatePrincipalData,
   CreateUserPrincipalData,
@@ -48,6 +52,12 @@ import {
   UpdatePrincipalGroupData,
   UpdatePrincipalUserData,
 } from './validations';
+import {
+  SchedulerClient,
+  CreateScheduleCommand,
+  DeleteScheduleCommand,
+} from '@aws-sdk/client-scheduler';
+import { getLocaleDateString } from '../__shared__/utils';
 
 const credentials = {
   accessKeyId: config.AWS_ACCESS_KEY_ID,
@@ -59,11 +69,215 @@ export const ssoAdmin = new SSOAdminClient({
   credentials,
 });
 
+export const scheduler = new SchedulerClient({ credentials });
+
 export const sts = new STSClient({ credentials });
 
 export const identityStore = new IdentitystoreClient({ credentials });
 
 export const organizations = new OrganizationsClient({ credentials });
+
+export const iam = new IAMClient({ credentials });
+
+type CreateOneTimeSchedule = {
+  startTime: Date;
+  endTime: Date;
+  name: string;
+};
+
+export const deleteSchedule = async (name: string) => {
+  await scheduler
+    .send(
+      new DeleteScheduleCommand({
+        Name: `start_${name}`,
+      })
+    )
+    .catch((e) => {});
+
+  await scheduler
+    .send(
+      new DeleteScheduleCommand({
+        Name: `end_${name}`,
+      })
+    )
+    .catch((e) => {});
+};
+export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
+  const { name, startTime, endTime } = data;
+  const startTimeStr =
+    getLocaleDateString(startTime, {
+      format: 'yyyy-mm-ddThh:MM',
+    }) + ':00';
+  const endTimeStr =
+    getLocaleDateString(endTime, {
+      format: 'yyyy-mm-ddThh:MM',
+    }) + ':00';
+
+  console.log(startTimeStr, endTimeStr);
+
+  const targetArn =
+    'arn:aws:lambda:ap-southeast-3:587000135223:function:cron-aws-identity';
+
+  const roleArn =
+    'arn:aws:iam::587000135223:role/service-role/Amazon_EventBridge_Scheduler_LAMBDA_38758e7cac';
+
+  await scheduler.send(
+    new CreateScheduleCommand({
+      Name: `start_${name}`,
+      ActionAfterCompletion: 'DELETE',
+      ScheduleExpression: `at(${startTimeStr})`,
+      Target: {
+        Arn: targetArn,
+        RoleArn: roleArn,
+        Input: JSON.stringify({
+          name,
+        }),
+      },
+      FlexibleTimeWindow: {
+        Mode: 'OFF',
+      },
+      ScheduleExpressionTimezone: 'Asia/Jakarta',
+    })
+  );
+
+  await scheduler.send(
+    new CreateScheduleCommand({
+      Name: `end_${name}`,
+      ActionAfterCompletion: 'DELETE',
+      ScheduleExpression: `at(${endTimeStr})`,
+      Target: {
+        Arn: targetArn,
+        RoleArn: roleArn,
+        Input: JSON.stringify({
+          name,
+        }),
+      },
+      FlexibleTimeWindow: {
+        Mode: 'OFF',
+      },
+      ScheduleExpressionTimezone: 'Asia/Jakarta',
+    })
+  );
+};
+
+export const listGroupsInUsers = async () => {
+  const [groupsInMap, usersInMap] = await Promise.all([
+    listGroupsInMap(),
+    listUsersInMap(),
+  ]);
+
+  const groups = Array.from(groupsInMap.values());
+
+  const groupMembershipsPromises = groups.map((group) => {
+    return identityStore.send(
+      new ListGroupMembershipsCommand({
+        GroupId: group.id,
+        IdentityStoreId: group.identityStoreId!,
+        MaxResults: 99,
+      })
+    );
+  });
+
+  const groupMemberships = await Promise.all(groupMembershipsPromises);
+
+  const usersGroupsMap = new Map<
+    string,
+    { groupDisplayName: string; groupId: string; membershipId: string }[]
+  >();
+
+  groupMemberships.forEach(({ GroupMemberships }) => {
+    if (!GroupMemberships) return;
+
+    GroupMemberships.forEach(({ MemberId, MembershipId, GroupId }) => {
+      if (!MemberId || !MembershipId || !GroupId) return;
+      const { UserId } = MemberId;
+
+      if (!UserId || !GroupId) return;
+      const group = groupsInMap.get(GroupId);
+      if (!group) return;
+
+      const userMap = usersGroupsMap.get(UserId);
+      if (!userMap) {
+        usersGroupsMap.set(UserId, [
+          {
+            groupDisplayName: group.displayName!,
+            groupId: GroupId,
+            membershipId: MembershipId,
+          },
+        ]);
+      } else {
+        userMap.push({
+          groupDisplayName: group.displayName!,
+          groupId: GroupId,
+          membershipId: MembershipId,
+        });
+        usersGroupsMap.set(UserId, userMap);
+      }
+    });
+  });
+
+  return usersGroupsMap;
+};
+
+export const listUsersInGroups = async () => {
+  const [groupsInMap, usersInMap] = await Promise.all([
+    listGroupsInMap(),
+    listUsersInMap(),
+  ]);
+
+  const groups = Array.from(groupsInMap.values());
+
+  const groupMembershipsPromises = groups.map((group) => {
+    return identityStore.send(
+      new ListGroupMembershipsCommand({
+        GroupId: group.id,
+        IdentityStoreId: group.identityStoreId!,
+        MaxResults: 99,
+      })
+    );
+  });
+
+  const groupMemberships = await Promise.all(groupMembershipsPromises);
+
+  const groupsUsersMap = new Map<
+    string,
+    { userDisplayName: string; userId: string; membershipId: string }[]
+  >();
+
+  groupMemberships.forEach(({ GroupMemberships }) => {
+    if (!GroupMemberships) return;
+
+    GroupMemberships.forEach(({ MemberId, MembershipId, GroupId }) => {
+      if (!MemberId || !MembershipId || !GroupId) return;
+      const { UserId } = MemberId;
+
+      if (!UserId) return;
+      const user = usersInMap.get(UserId);
+      if (!user) return;
+
+      const groupMap = groupsUsersMap.get(GroupId);
+
+      if (!groupMap) {
+        groupsUsersMap.set(GroupId!, [
+          {
+            userDisplayName: user.displayName!,
+            userId: UserId,
+            membershipId: MembershipId,
+          },
+        ]);
+      } else {
+        groupMap.push({
+          userDisplayName: user.displayName!,
+          userId: UserId,
+          membershipId: MembershipId,
+        });
+        groupsUsersMap.set(GroupId!, groupMap);
+      }
+    });
+  });
+
+  return groupsUsersMap;
+};
 
 export const getAccountId = async () => {
   const { Account } = await sts.send(new GetCallerIdentityCommand({}));
@@ -136,7 +350,7 @@ export const listAccountAssignmentsforPrincipal = async (
 ) => {
   const identityInstance = await getIdentityInstanceOrThrow();
 
-  let accountAssignments: AccountAssignmentForPrincipal[] = [];
+  const accountAssignments: AccountAssignmentForPrincipal[] = [];
 
   const { instanceArn } = identityInstance;
 
@@ -227,9 +441,9 @@ export const describeDetailPrincipalAwsAccounts = async (
     ...new Set(data.map((p) => `${p.principalId}#${p.principalType}`)),
   ];
 
-  const principalsAwsAccountsSet = new Set(
-    data.map((p) => `${p.principalId}#${p.principalType}#${p.awsAccountId}`)
-  );
+  // const principalsAwsAccountsSet = new Set(
+  //   data.map((p) => `${p.principalId}#${p.principalType}#${p.awsAccountId}`)
+  // );
 
   const accountAssignmentPromises = principalsUnique.map((principal) => {
     const [principalId, principalType] = principal.split('#');
@@ -293,6 +507,7 @@ export const describeDetailPrincipalAwsAccounts = async (
     });
   });
 
+  // biome-ignore lint/complexity/noForEach: <explanation>
   data.forEach(({ principalId, awsAccountId, principalType, id }) => {
     const key = `${principalId}#${awsAccountId}`;
     const value = principalAwsAccountMap.get(key);
@@ -503,7 +718,7 @@ export const listAccountAssignments = async (): Promise<
 export const listGroups = async () => {
   const { identityStoreId } = await getIdentityInstanceOrThrow();
 
-  let groups: Group[] = [];
+  const groups: Group[] = [];
   const { Groups, NextToken } = await identityStore.send(
     new ListGroupsCommand({
       IdentityStoreId: identityStoreId,
@@ -541,7 +756,7 @@ export const listGroups = async () => {
 export const listUsers = async () => {
   const { identityStoreId } = await getIdentityInstanceOrThrow();
 
-  let users: User[] = [];
+  const users: User[] = [];
   const { Users, NextToken } = await identityStore.send(
     new ListUsersCommand({
       IdentityStoreId: identityStoreId,
@@ -1046,9 +1261,15 @@ export const updatePrincipal = async ({
 
 export const updatePrincipalGroup = async (data: UpdatePrincipalGroupData) => {
   const { identityStoreId } = await getIdentityInstanceOrThrow();
-  const { id, displayName, description } = data;
+  const {
+    id,
+    displayName,
+    description,
+    membershipIdsToBeDeleted,
+    userIdsToBeAdded,
+  } = data;
 
-  await identityStore.send(
+  const updatePromise = identityStore.send(
     new UpdateGroupCommand({
       GroupId: id,
       IdentityStoreId: identityStoreId,
@@ -1065,6 +1286,35 @@ export const updatePrincipalGroup = async (data: UpdatePrincipalGroupData) => {
     })
   );
 
+  const deleteMembershipPromises =
+    membershipIdsToBeDeleted?.map((membershipId) => {
+      return identityStore.send(
+        new DeleteGroupMembershipCommand({
+          IdentityStoreId: identityStoreId,
+          MembershipId: membershipId,
+        })
+      );
+    }) ?? [];
+
+  const addMembershipPromises =
+    userIdsToBeAdded?.map((userId) => {
+      return identityStore.send(
+        new CreateGroupMembershipCommand({
+          GroupId: id,
+          IdentityStoreId: identityStoreId,
+          MemberId: {
+            UserId: userId,
+          },
+        })
+      );
+    }) ?? [];
+
+  await Promise.all([
+    ...deleteMembershipPromises,
+    ...addMembershipPromises,
+    updatePromise,
+  ]);
+
   return {
     id,
   };
@@ -1072,9 +1322,16 @@ export const updatePrincipalGroup = async (data: UpdatePrincipalGroupData) => {
 
 export const updatePrincipalUser = async (data: UpdatePrincipalUserData) => {
   const { identityStoreId } = await getIdentityInstanceOrThrow();
-  const { id, displayName, familyName, givenName } = data;
+  const {
+    id,
+    displayName,
+    familyName,
+    givenName,
+    membershipIdsToBeDeleted,
+    groupIdsToBeAdded,
+  } = data;
 
-  await identityStore.send(
+  const updatePromise = identityStore.send(
     new UpdateUserCommand({
       UserId: id,
       IdentityStoreId: identityStoreId,
@@ -1093,6 +1350,35 @@ export const updatePrincipalUser = async (data: UpdatePrincipalUserData) => {
       ],
     })
   );
+
+  const deleteMembershipPromises =
+    membershipIdsToBeDeleted?.map((membershipId) => {
+      return identityStore.send(
+        new DeleteGroupMembershipCommand({
+          IdentityStoreId: identityStoreId,
+          MembershipId: membershipId,
+        })
+      );
+    }) ?? [];
+
+  const addMembershipPromises =
+    groupIdsToBeAdded?.map((groupId) => {
+      return identityStore.send(
+        new CreateGroupMembershipCommand({
+          GroupId: groupId,
+          IdentityStoreId: identityStoreId,
+          MemberId: {
+            UserId: id,
+          },
+        })
+      );
+    }) ?? [];
+
+  await Promise.all([
+    ...deleteMembershipPromises,
+    ...addMembershipPromises,
+    updatePromise,
+  ]);
 
   return {
     id,

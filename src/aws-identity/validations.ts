@@ -132,24 +132,36 @@ export const PullAssignmentSchema = object({
 export const CreateFreezeTimeSchema = transform(
   object(
     {
-      note: NoteSchema,
+      excludedPrincipals: optional(
+        array(
+          object({
+            id: PrincipalIdSchema,
+            type: PrincipalTypeSchema,
+          }),
+          'The input must be an array of excluded principals.'
+        )
+      ),
+      name: string('Please enter name', [
+        minLength(5, 'Name must be at least 5 characters.'),
+        maxLength(32, 'Name maximum is 32 characters.'),
+      ]),
       target: picklist(Object.values(FreezeTimeTarget), 'Invalid target.'),
       permissionSetArns: PermissionSetArnsRequiredSchema,
       startTime: string(
-        'Please enter a valid start time in the format yyyy-mm-dd.',
+        'Please enter a valid start time in the format yyyy-MM-dd HH:mm.',
         [
           regex(
-            /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/,
-            'Please enter a valid start time in the format yyyy-mm-dd.'
+            /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (2[0-3]|[01][0-9]):[0-5][0-9]$/,
+            'Please enter a valid start time in the format yyyy-MM-dd HH:mm.'
           ),
         ]
       ),
       endTime: string(
-        'Please enter a valid end time in the format yyyy-mm-dd.',
+        'Please enter a valid end time in the format yyyy-MM-dd HH:mm.',
         [
           regex(
-            /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/,
-            'Please enter a valid end time in the format yyyy-mm-dd.'
+            /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (2[0-3]|[01][0-9]):[0-5][0-9]$/,
+            'Please enter a valid end time in the format yyyy-MM-dd HH:mm.'
           ),
         ]
       ),
@@ -159,18 +171,15 @@ export const CreateFreezeTimeSchema = transform(
         custom(
           ({ startTime, endTime }) =>
             new Date(startTime).getTime() < new Date(endTime).getTime(),
-          'End time must be greater than start time'
+          'End time must be greater than start date'
         ),
         ['endTime']
       ),
       forward(
         custom(
           ({ startTime }) =>
-            new Date(startTime).getTime() >=
-            new Date(new Date().toDateString()).getTime(),
-          `Start time must be greater or equal to current date (${
-            new Date().toISOString().split('T')[0]
-          })`
+            new Date(startTime).getTime() >= new Date().getTime(),
+          `Start time must be greater or equal to current time`
         ),
         ['startTime']
       ),
@@ -286,6 +295,21 @@ export const UpdatePrincipalGroupSchema = object({
       minLength(1, 'Please enter a description.'),
     ])
   ),
+  membershipIdsToBeDeleted: optional(
+    array(
+      string('Id must be a string', [minLength(1, 'Please enter an id.')]),
+      'The input must be an array of ids.',
+      [minLength(1, 'Please input at least one id.')]
+    )
+  ),
+
+  userIdsToBeAdded: optional(
+    array(
+      string('Id must be a string', [minLength(1, 'Please enter an id.')]),
+      'The input must be an array of ids.',
+      [minLength(1, 'Please input at least one id.')]
+    )
+  ),
 });
 
 export const UpdatePrincipalUserSchema = object({
@@ -300,6 +324,21 @@ export const UpdatePrincipalUserSchema = object({
   familyName: string('Family name must be a string', [
     minLength(1, 'Please enter a family name.'),
   ]),
+  membershipIdsToBeDeleted: optional(
+    array(
+      string('Id must be a string', [minLength(1, 'Please enter an id.')]),
+      'The input must be an array of ids.',
+      [minLength(1, 'Please input at least one id.')]
+    )
+  ),
+
+  groupIdsToBeAdded: optional(
+    array(
+      string('Id must be a string', [minLength(1, 'Please enter an id.')]),
+      'The input must be an array of ids.',
+      [minLength(1, 'Please input at least one id.')]
+    )
+  ),
 });
 
 export type CreateUserPrincipalData = Output<typeof CreateUserPrincipalSchema>;

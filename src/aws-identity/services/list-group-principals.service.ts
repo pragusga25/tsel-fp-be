@@ -1,9 +1,12 @@
-import { listGroups } from '../helper';
+import { listGroups, listUsersInGroups } from '../helper';
 
 export const listGroupPrincipalsService = async () => {
-  const result = await listGroups();
+  const [groups, groupMemberships] = await Promise.all([
+    listGroups(),
+    listUsersInGroups(),
+  ]);
 
-  result.sort((a, b) => {
+  groups.sort((a, b) => {
     if (a.displayName && b.displayName) {
       return a.displayName.localeCompare(b.displayName);
     }
@@ -11,5 +14,21 @@ export const listGroupPrincipalsService = async () => {
     return 0;
   });
 
-  return { result };
+  return {
+    result: groups.map((group) => {
+      const memberships = groupMemberships.get(group.id) || [];
+      memberships.sort((a, b) => {
+        if (a.userDisplayName && b.userDisplayName) {
+          return a.userDisplayName.localeCompare(b.userDisplayName);
+        }
+
+        return 0;
+      });
+
+      return {
+        ...group,
+        memberships,
+      };
+    }),
+  };
 };

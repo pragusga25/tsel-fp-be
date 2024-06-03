@@ -14,7 +14,10 @@ pushOneAssignmentRouter.post(
   validationBodyMiddleware(PushOneAssignmentSchema),
   asyncErrorHandler(async (req, res) => {
     const payload = req.body;
-    await pushOneAssignmentService(payload);
+    // await pushOneAssignmentService(payload);
+    res.on('finish', async () => {
+      await pushOneAssignmentService(payload);
+    });
 
     res.status(200).send({
       ok: true,

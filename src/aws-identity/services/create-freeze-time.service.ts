@@ -1,14 +1,19 @@
+import { Response } from 'express';
 import { db } from '../../db';
 import { FreezeTimeConflictError } from '../errors';
 import { CreateFreezeTimeData } from '../validations';
-import { directFreezeAssignmentsService } from './direct-freeze-assignment.service';
+// import { directFreezeAssignmentsService } from './direct-freeze-assignment.service';
+import { createOneTimeSchedule } from '../helper';
 
-export const createFreezeTimeService = async (data: CreateFreezeTimeData) => {
+export const createFreezeTimeService = async (
+  data: CreateFreezeTimeData,
+  res?: Response
+) => {
   const { startTime, endTime } = data;
 
   const isIntersecting = await db.freezeTime.findMany({
     where: {
-      AND: [{ startTime: { lte: endTime } }, { endTime: { gte: startTime } }],
+      AND: [{ startTime: { lte: endTime } }, { endTime: { gt: startTime } }],
     },
   });
 
@@ -18,15 +23,13 @@ export const createFreezeTimeService = async (data: CreateFreezeTimeData) => {
     ]);
   }
 
-  const todayDate = new Date().toISOString().split('T')[0];
-  const startTimeDate = new Date(startTime).toISOString().split('T')[0];
-
   const result = await db.$transaction(async (trx) => {
     const result = await trx.freezeTime.create({ data, select: { id: true } });
-
-    if (todayDate === startTimeDate) {
-      await directFreezeAssignmentsService(data);
-    }
+    await createOneTimeSchedule({
+      name: data.name,
+      startTime,
+      endTime,
+    });
 
     return result;
   });

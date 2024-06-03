@@ -15,10 +15,13 @@ createFreezeTimeRouter.post(
   validationBodyMiddleware(CreateFreezeTimeSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
     const payload = req.body;
-    const result = await createFreezeTimeService({
-      ...payload,
-      creatorId: req.user!.id,
-    });
+    const result = await createFreezeTimeService(
+      {
+        ...payload,
+        creatorId: req.user!.id,
+      },
+      res
+    );
 
     res.status(201).send({
       ok: true,

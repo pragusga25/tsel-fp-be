@@ -5,10 +5,13 @@ import { IAuthRequest } from '../../__shared__/interfaces';
 
 export const schedulePushAssignmentsRouter = Router();
 schedulePushAssignmentsRouter.post(
-  '/assignments.schedule-push',
+  '/assignments.rollback',
   apiKeyMiddleware,
   asyncErrorHandler(async (_req: IAuthRequest, res) => {
-    await schedulePushAssignmentsService();
+    await schedulePushAssignmentsService(res);
+    // res.on('finish', async () => {
+    //   await schedulePushAssignmentsService();
+    // });
     res.status(200).send({
       ok: true,
     });
