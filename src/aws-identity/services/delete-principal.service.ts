@@ -17,14 +17,7 @@ export const deletePrincipalService = async (data: DeletePrincipalData) => {
         },
       })
       .catch();
-    await db.principalAwsAccountUser
-      .deleteMany({
-        where: {
-          principalId: data.id,
-          principalType: data.type,
-        },
-      })
-      .catch();
+
     await db.assignmentRequest
       .deleteMany({
         where: {

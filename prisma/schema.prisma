@@ -14,40 +14,30 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(cuid())
-  username String @unique
+  id       String  @id @default(cuid())
+  username String  @unique
   password String
   name     String
+  email    String? @unique
 
   role                        Role                @default(USER)
   assignmentRequestRequesters AssignmentRequest[] @relation("requester")
   assignmentRequestResponders AssignmentRequest[] @relation("responder")
 
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  freezeTimes              FreezeTime[]
-  principalAwsAccountUsers PrincipalAwsAccountUser[]
-}
+  principalUserId String? @unique
 
-model PrincipalAwsAccountUser {
-  id            String        @id @default(cuid())
-  principalId   String
-  principalType PrincipalType @default(GROUP)
-  awsAccountId  String
-
-  userId String
-  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([principalId, awsAccountId, principalType, userId])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  freezeTimes FreezeTime[]
 }
 
 model IdentityInstance {
   id              String @id @default(cuid())
   instanceArn     String
   identityStoreId String
+
+  schedulerTargetArn String?
+  schedulerRoleArn   String?
 }
 
 model AccountAssignment {

@@ -8,6 +8,7 @@ export interface IJwtPayload extends JwtPayload {
   username: string;
   role: Role;
   name: string;
+  email?: string | null;
 }
 
 export interface IHttpErrorResponse {

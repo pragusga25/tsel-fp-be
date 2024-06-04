@@ -91,3 +91,15 @@ export class AccountAssignmentInAWSNotFoundError extends HttpError {
     ]);
   }
 }
+
+export class IdentityInstanceUnsetError extends HttpError {
+  constructor(details: string[] = []) {
+    super(400, 'aws-identity/identity-instance-unset', details);
+  }
+}
+
+export class SchedulerUnsetError extends HttpError {
+  constructor(details: string[] = []) {
+    super(400, 'aws-identity/scheduler-unset', details);
+  }
+}

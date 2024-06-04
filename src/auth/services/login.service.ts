@@ -7,13 +7,23 @@ import bcrypt from 'bcrypt';
 export const loginService = async (data: LoginData) => {
   const { username, password } = data;
 
-  const user = await db.user.findUnique({
-    where: { username },
+  const user = await db.user.findFirst({
+    where: {
+      OR: [
+        {
+          username,
+        },
+        {
+          email: username,
+        },
+      ],
+    },
     select: {
       id: true,
       username: true,
       name: true,
       role: true,
+      email: true,
       password: true,
     },
   });

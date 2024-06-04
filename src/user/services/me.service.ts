@@ -1,4 +1,4 @@
-import { describeDetailPrincipalAwsAccounts } from '../../aws-identity/helper';
+import { getUserMemberships } from '../../aws-identity/helper';
 import { db } from '../../db';
 import { UserNotFoundError } from '../errors';
 
@@ -10,14 +10,8 @@ export const meService = async (userId: string) => {
       name: true,
       username: true,
       role: true,
-      principalAwsAccountUsers: {
-        select: {
-          id: true,
-          awsAccountId: true,
-          principalId: true,
-          principalType: true,
-        },
-      },
+      email: true,
+      principalUserId: true,
     },
   });
 
@@ -25,19 +19,16 @@ export const meService = async (userId: string) => {
     throw new UserNotFoundError();
   }
 
-  const { principalAwsAccountUsers, ...rest } = user;
-
-  if (principalAwsAccountUsers.length === 0)
-    return { result: { ...rest, principalAwsAccountUsers: [] } };
-
-  const detailsPrincipalAwsAccounts = await describeDetailPrincipalAwsAccounts(
-    user.principalAwsAccountUsers
-  );
+  const { principalUserId, ...rest } = user;
+  const memberships = principalUserId
+    ? await getUserMemberships(principalUserId)
+    : [];
 
   return {
     result: {
       ...rest,
-      principalAwsAccountUsers: detailsPrincipalAwsAccounts,
+      memberships,
+      principalUserId,
     },
   };
 };

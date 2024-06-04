@@ -1,10 +1,6 @@
 import { Role } from '@prisma/client';
 import { db } from '../../db';
-import {
-  listAccountsInMap,
-  listPrincipalsInMap,
-} from '../../aws-identity/helper';
-import { PrincipalAwsAccountUserDetail } from '../types';
+import { listUsersInMap } from '../../aws-identity/helper';
 
 export const listAccountUsersService = async () => {
   const users = await db.user.findMany({
@@ -14,17 +10,14 @@ export const listAccountUsersService = async () => {
       name: true,
       createdAt: true,
       updatedAt: true,
-      principalAwsAccountUsers: {
-        select: {
-          id: true,
-          awsAccountId: true,
-          principalId: true,
-          principalType: true,
-        },
-      },
+      email: true,
+      principalUserId: true,
     },
     where: {
       role: Role.USER,
+    },
+    orderBy: {
+      name: 'asc',
     },
   });
 
@@ -32,39 +25,17 @@ export const listAccountUsersService = async () => {
     return { users };
   }
 
-  const [principals, awsAccounts] = await Promise.all([
-    listPrincipalsInMap(),
-    listAccountsInMap(),
-  ]);
+  const [principalUsers] = await Promise.all([listUsersInMap()]);
 
-  const result = users.map(({ principalAwsAccountUsers, ...rest }) => {
-    const principalAwsAccountUserDetails: PrincipalAwsAccountUserDetail[] = [];
-
-    if (principalAwsAccountUsers.length === 0)
-      return { ...rest, principalAwsAccountUsers: [] };
-
-    principalAwsAccountUsers.forEach(
-      ({ awsAccountId, principalId, ...rest }) => {
-        const principal = principals.get(principalId);
-        const awsAccount = awsAccounts.get(awsAccountId);
-
-        if (!principal || !awsAccount) {
-          return;
-        }
-
-        principalAwsAccountUserDetails.push({
-          ...rest,
-          principalId,
-          awsAccountId,
-          awsAccountName: awsAccount.name,
-          principalDisplayName: principal.displayName ?? '',
-        });
-      }
-    );
+  const result = users.map(({ principalUserId, ...rest }) => {
+    const principalUser = principalUserId
+      ? principalUsers.get(principalUserId)
+      : null;
 
     return {
       ...rest,
-      principalAwsAccountUsers: principalAwsAccountUserDetails,
+      principalDisplayName: principalUser?.displayName,
+      principalId: principalUser?.id,
     };
   });
 

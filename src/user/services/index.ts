@@ -6,3 +6,5 @@ export * from './create-account-user.service';
 export * from './create-account-admin.service';
 export * from './list-account-admins.service';
 export * from './me.service';
+export * from './synchronize-account-user.service';
+export * from './reset-account-user-password.service';

@@ -1,6 +1,7 @@
 import {
   Output,
   array,
+  email,
   minLength,
   object,
   optional,
@@ -23,6 +24,10 @@ export const UpdateAccountPasswordSchema = object({
   newPassword: string('New password must be a string', [minLength(8)]),
 });
 
+export const ResetAccountUserPasswordSchema = object({
+  userId: string('User id must be a string', [minLength(1)]),
+});
+
 export const PrincipalAwsAccountUser = object({
   principalId: string('Principal id must be a string', [
     uuid('Please enter a valid principal id.'),
@@ -43,8 +48,11 @@ export const CreateAccountUserSchema = object({
   name: string('Name must be a string', [
     minLength(1, 'Please enter the name.'),
   ]),
-  principalAwsAccountUsers: array(PrincipalAwsAccountUser, [
-    minLength(1, 'Please enter at least one AWS account.'),
+  principalUserId: string('Principal user id must be a string', [
+    uuid('Please enter a valid principal user id.'),
+  ]),
+  email: string('Email must be a string', [
+    email('Please enter a valid email address.'),
   ]),
 });
 
@@ -69,17 +77,9 @@ export const UpdateAccountUserSchema = object({
       minLength(1, 'Please enter the username.'),
     ])
   ),
-  principalAwsAccountUserIdsToBeDeleted: optional(
-    array(
-      string('Principal AWS Account User Id must be a string', [
-        minLength(1, 'Please enter the Principal AWS Account User Id.'),
-      ]),
-      'The input must be an array of Principal AWS Account User Ids.'
-    )
-  ),
-  principalAwsAccountsToBeAdded: optional(
-    array(PrincipalAwsAccountUser, [
-      minLength(1, 'Please enter at least one AWS account.'),
+  principalUserId: optional(
+    string('Principal user id must be a string', [
+      uuid('Please enter a valid principal user id.'),
     ])
   ),
   id: string('Id must be a string', [minLength(1, 'Please enter the id.')]),
@@ -94,3 +94,6 @@ export type UpdateAccountPasswordData = Output<
 > & {
   userId: string;
 };
+export type ResetAccountUserPasswordData = Output<
+  typeof ResetAccountUserPasswordSchema
+>;

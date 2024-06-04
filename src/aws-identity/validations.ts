@@ -89,6 +89,16 @@ export const IdentityInstanceSchema = object({
   identityStoreId: string([
     minLength(1, 'Please enter the identity store ID.'),
   ]),
+  schedulerTargetArn: optional(
+    string('Scheduler target ARN must be a string.', [
+      minLength(1, 'Please enter the scheduler target ARN.'),
+    ])
+  ),
+  schedulerRoleArn: optional(
+    string('Scheduler role ARN must be a string.', [
+      minLength(1, 'Please enter the scheduler role ARN.'),
+    ])
+  ),
 });
 
 export const RequestAssignmentSchema = object({
@@ -101,9 +111,8 @@ export const RequestAssignmentSchema = object({
     ),
     AssignmentOperation.ATTACH
   ),
-  principalAwsAccountUserId: string('Principal id must be a string', [
-    minLength(1, 'Please enter the principal id.'),
-  ]),
+  principalGroupId: PrincipalIdSchema,
+  awsAccountId: AwsAccountIdSchema,
 });
 
 const IdsSchema = array(

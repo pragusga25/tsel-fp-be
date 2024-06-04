@@ -16,6 +16,7 @@ import {
   ListGroupMembershipsCommand,
   CreateGroupMembershipCommand,
   DeleteGroupMembershipCommand,
+  ListGroupMembershipsForMemberCommand,
 } from '@aws-sdk/client-identitystore';
 import {
   type Account,
@@ -160,11 +161,50 @@ export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
   );
 };
 
-export const listGroupsInUsers = async () => {
-  const [groupsInMap, usersInMap] = await Promise.all([
+export const getUserMemberships = async (principalUserId: string) => {
+  const [{ identityStoreId }, groupsInMap] = await Promise.all([
+    getIdentityInstanceOrThrow(),
     listGroupsInMap(),
-    listUsersInMap(),
   ]);
+
+  const { GroupMemberships } = await identityStore.send(
+    new ListGroupMembershipsForMemberCommand({
+      MemberId: {
+        UserId: principalUserId,
+      },
+      IdentityStoreId: identityStoreId,
+    })
+  );
+
+  if (!GroupMemberships) return [];
+
+  const memberships: {
+    membershipId: string;
+    groupId: string;
+    groupDisplayName: string;
+  }[] = [];
+
+  GroupMemberships.forEach((membership) => {
+    const { GroupId, MembershipId } = membership;
+
+    if (!GroupId || !MembershipId) return;
+
+    const group = groupsInMap.get(GroupId);
+
+    if (!group || !group.displayName) return;
+
+    memberships.push({
+      membershipId: MembershipId,
+      groupId: GroupId,
+      groupDisplayName: group.displayName,
+    });
+  });
+
+  return memberships;
+};
+
+export const listGroupsInUsers = async () => {
+  const [groupsInMap] = await Promise.all([listGroupsInMap()]);
 
   const groups = Array.from(groupsInMap.values());
 
@@ -1111,6 +1151,33 @@ export const describeGroup = async (groupId: string) => {
     displayName: DisplayName ?? null,
     principalType: PrincipalType.GROUP,
   };
+};
+
+export const describeGroupsInMap = async (groupIds: string[]) => {
+  const { identityStoreId } = await getIdentityInstanceOrThrow();
+
+  const describePromises = groupIds.map((groupId) => {
+    return identityStore.send(
+      new DescribeGroupCommand({
+        GroupId: groupId,
+        IdentityStoreId: identityStoreId,
+      })
+    );
+  });
+
+  const groups = await Promise.all(describePromises);
+
+  const result: Map<string, { id: string; displayName: string | null }> =
+    new Map();
+
+  groups.forEach((group) => {
+    result.set(group.GroupId!, {
+      id: group.GroupId ?? '-',
+      displayName: group.DisplayName ?? null,
+    });
+  });
+
+  return result;
 };
 
 export const describeUser = async (userId: string) => {
