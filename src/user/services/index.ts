@@ -8,3 +8,4 @@ export * from './list-account-admins.service';
 export * from './me.service';
 export * from './synchronize-account-user.service';
 export * from './reset-account-user-password.service';
+export * from './create-account-admin-bulk.service';

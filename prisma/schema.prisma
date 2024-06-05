@@ -15,10 +15,10 @@ datasource db {
 
 model User {
   id       String  @id @default(cuid())
-  username String  @unique
+  username String
   password String
   name     String
-  email    String? @unique
+  email    String?
 
   role                        Role                @default(USER)
   assignmentRequestRequesters AssignmentRequest[] @relation("requester")
@@ -29,6 +29,9 @@ model User {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   freezeTimes FreezeTime[]
+
+  @@unique([username, role])
+  @@unique([email, role])
 }
 
 model IdentityInstance {

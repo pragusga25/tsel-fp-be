@@ -1,3 +1,4 @@
+import { createAccountAdminBulkRouter } from './create-account-admin-bulk.router';
 import { createAccountAdminRouter } from './create-account-admin.router';
 import { createAccountUserRouter } from './create-account-user.router';
 import { deleteAccountsRouter } from './delete-accounts.router';
@@ -20,4 +21,5 @@ export const userRouters = [
   meRouter,
   synchronizeAccountUserRouter,
   resetAccountUserPasswordRouter,
+  createAccountAdminBulkRouter,
 ];

@@ -61,7 +61,6 @@ export const listMyPermissionSetsService = async (userId: string) => {
   > = {};
 
   for (const assignments of groupAssignments) {
-    console.log(assignments);
     for (const assignment of assignments) {
       const permissionSet = permissionSetsMap.get(assignment.permissionSetArn);
       const key = `${assignment.principalId}#${assignment.accountId}`;
@@ -79,8 +78,6 @@ export const listMyPermissionSetsService = async (userId: string) => {
       }
     }
   }
-
-  console.log(permissionSetsInPrincipalMap);
 
   const result: Result = [];
 

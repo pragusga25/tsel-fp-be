@@ -48,7 +48,7 @@ export const synchronizeAccountUserService = async () => {
         name: user.name?.givenName + ' ' + user.name?.familyName,
         username: user.username!,
         email: user.emails[0],
-        password: bcrypt.hashSync(user.username!, 12),
+        password: bcrypt.hashSync(user.username! + 'tsel889900!', 12),
         principalUserId: user.id,
         role: Role.USER,
       })),

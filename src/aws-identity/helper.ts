@@ -114,8 +114,6 @@ export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
       format: 'yyyy-mm-ddThh:MM',
     }) + ':00';
 
-  console.log(startTimeStr, endTimeStr);
-
   const targetArn =
     'arn:aws:lambda:ap-southeast-3:587000135223:function:cron-aws-identity';
 
@@ -1183,17 +1181,25 @@ export const describeGroupsInMap = async (groupIds: string[]) => {
 export const describeUser = async (userId: string) => {
   const { identityStoreId } = await getIdentityInstanceOrThrow();
 
-  const { UserId, DisplayName } = await identityStore.send(
-    new DescribeUserCommand({
-      UserId: userId,
-      IdentityStoreId: identityStoreId,
-    })
-  );
+  const { UserId, DisplayName, Emails, Name, UserName } =
+    await identityStore.send(
+      new DescribeUserCommand({
+        UserId: userId,
+        IdentityStoreId: identityStoreId,
+      })
+    );
+
+  const givenName = Name?.GivenName ?? '';
+  const familyName = Name?.FamilyName ?? '';
+  const middleName = Name?.MiddleName ?? '';
 
   return {
     id: UserId ?? '-',
     displayName: DisplayName ?? null,
     principalType: PrincipalType.USER,
+    email: Emails?.[0]?.Value ?? null,
+    name: givenName + ' ' + middleName + ' ' + familyName,
+    username: UserName ?? '',
   };
 };
 

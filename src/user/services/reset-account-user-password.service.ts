@@ -18,7 +18,7 @@ export const resetAccountUserPasswordService = async (
     throw new UserNotFoundError();
   }
 
-  const hashedPassword = await bcrypt.hash(user.username, 12);
+  const hashedPassword = await bcrypt.hash(user.username + 'tsel889900!', 12);
 
   await db.user.update({
     where: {

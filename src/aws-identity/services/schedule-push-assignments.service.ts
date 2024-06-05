@@ -23,8 +23,6 @@ export const schedulePushAssignmentsService = async (res?: Response) => {
     freezeTimePromise,
   ]);
 
-  console.log('FREEZE TIME: ', freezeTime);
-
   if (dbAssignments.length === 0) {
     throw new OperationFailedError([
       'No account assignments found. Please pull account assignments first.',
