@@ -2,41 +2,44 @@ import { Role } from '@prisma/client';
 import { listUsers } from '../../aws-identity/helper';
 import { db } from '../../db';
 import bcrypt from 'bcrypt';
+import { IJwtPayload } from '../../__shared__/interfaces';
+import { createLog } from '../../__shared__/utils';
 
-export const synchronizeAccountUserService = async () => {
+export const synchronizeAccountUserService = async (
+  currentUser?: IJwtPayload
+) => {
   const principalUsers = await listUsers();
-  const awsPrincipalUserIds = principalUsers.map((user) => user.id);
+  const awsPrincipalUserUsername = principalUsers.map(
+    (user) => user.username
+  ) as string[];
 
   const usersDb = await db.user.findMany({
     where: {
-      principalUserId: {
-        in: awsPrincipalUserIds,
+      username: {
+        in: awsPrincipalUserUsername,
       },
     },
     select: {
       id: true,
-      principalUserId: true,
+      username: true,
     },
   });
 
-  const dbPrincipalUserIdsSet = new Set(
-    usersDb.map((user) => user.principalUserId)
-  );
+  const dbPrincipalUsernamesSet = new Set(usersDb.map((user) => user.username));
 
   const principalUsersNotInDb = principalUsers.filter(
-    (user) => !dbPrincipalUserIdsSet.has(user.id)
+    (user) => !dbPrincipalUsernamesSet.has(user.username!)
   );
 
   const principalUsersInDb = principalUsers.filter((user) =>
-    dbPrincipalUserIdsSet.has(user.id)
+    dbPrincipalUsernamesSet.has(user.username!)
   );
 
   const updatePromises = principalUsersInDb.map((user) =>
     db.user.update({
-      where: { id: user.id },
+      where: { username: user.username! },
       data: {
         name: user.name?.givenName + ' ' + user.name?.familyName,
-        username: user.username!,
         email: user.emails[0],
       },
     })
@@ -55,4 +58,10 @@ export const synchronizeAccountUserService = async () => {
     }),
     ...updatePromises,
   ]);
+
+  const newLen = principalUsersNotInDb.length;
+  const updateLen = updatePromises.length;
+  const logMessage = `${currentUser?.name} melakukan synkronisasi akun dengan role user. Terdapat ${newLen} akun baru dan ${updateLen} akun yang diperbarui`;
+
+  await createLog(logMessage);
 };

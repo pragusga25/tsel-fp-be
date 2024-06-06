@@ -13,7 +13,7 @@ deleteAccountsRouter.post(
   adminOnlyMiddleware,
   validationBodyMiddleware(DeleteAccountsSchema),
   async (req: IAuthRequest, res) => {
-    await deleteAccountsService(req.body);
+    await deleteAccountsService(req.body, req.user);
     res.status(200).send({
       ok: true,
     });

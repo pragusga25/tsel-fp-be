@@ -3,9 +3,12 @@ import { describeUser } from '../../aws-identity/helper';
 import { db } from '../../db';
 import { CreateAccountAdminBulkData } from '../validations';
 import bcrypt from 'bcrypt';
+import { IJwtPayload } from '../../__shared__/interfaces';
+import { createLog } from '../../__shared__/utils';
 
 export const createAccountAdminBulkService = async (
-  data: CreateAccountAdminBulkData
+  data: CreateAccountAdminBulkData,
+  currentUser?: IJwtPayload
 ) => {
   const { principalUserIds } = data;
 
@@ -13,24 +16,48 @@ export const createAccountAdminBulkService = async (
     describeUser(principalUserId)
   );
 
+  if (principalUserIds.length === 0) return;
+
   const principalUsers = await Promise.all(principalUsersPromise);
 
-  if (principalUsers.length === 0) return;
+  const alreadAdmins = await db.user.findMany({
+    where: {
+      role: Role.ADMIN,
+      username: {
+        in: principalUsers.map((principalUser) => principalUser.username),
+      },
+    },
+  });
+
+  if (principalUsers.length === alreadAdmins.length) return;
+
+  const alreadyAdminsUsernames = alreadAdmins.map((admin) => admin.username);
+  const alreadyAdminsUsernamesSet = new Set(alreadyAdminsUsernames);
+
+  const filteredPrincipalUsers = principalUsers.filter(
+    (principalUser) => !alreadyAdminsUsernamesSet.has(principalUser.username)
+  );
 
   const passwordMap = new Map<string, string>();
 
-  const hashPasswordPromises = principalUsers.map((principalUser) => {
+  const hashPasswordPromises = filteredPrincipalUsers.map((principalUser) => {
     return bcrypt.hash(principalUser.username + 'tsel889900!', 12);
   });
 
   const hashedPasswords = await Promise.all(hashPasswordPromises);
 
-  for (let i = 0; i < principalUsers.length; i++) {
-    passwordMap.set(principalUsers[i].username, hashedPasswords[i]);
+  for (let i = 0; i < filteredPrincipalUsers.length; i++) {
+    passwordMap.set(filteredPrincipalUsers[i].username, hashedPasswords[i]);
   }
 
-  for (let i = 0; i < principalUsers.length; i++) {
-    const principalUser = principalUsers[i];
+  let logMessage = `${currentUser?.name} membuat akun admin baru dengan username: `;
+
+  for (let i = 0; i < filteredPrincipalUsers.length; i++) {
+    const principalUser = filteredPrincipalUsers[i];
+    const principalUserId = principalUser.id;
+
+    logMessage += principalUser.username;
+    if (i < filteredPrincipalUsers.length - 1) logMessage += ', ';
 
     const { name, email, username } = principalUser;
     await db.user.upsert({
@@ -40,14 +67,17 @@ export const createAccountAdminBulkService = async (
         name,
         role: Role.ADMIN,
         password: passwordMap.get(username)!,
+        principalUserId,
       },
-      update: {},
+      update: {
+        role: Role.ADMIN,
+        principalUserId,
+      },
       where: {
-        username_role: {
-          username,
-          role: Role.ADMIN,
-        },
+        username,
       },
     });
   }
+
+  await createLog(logMessage);
 };

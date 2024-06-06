@@ -1,8 +1,7 @@
-import { Role } from '@prisma/client';
-import { db } from '../../db';
 import { listUsersInMap } from '../../aws-identity/helper';
+import { db } from '../../db';
 
-export const listAccountUsersService = async () => {
+export const listApproversService = async () => {
   const users = await db.user.findMany({
     select: {
       id: true,
@@ -15,7 +14,7 @@ export const listAccountUsersService = async () => {
       isRoot: true,
     },
     where: {
-      role: Role.USER,
+      isApprover: true,
     },
     orderBy: {
       name: 'asc',

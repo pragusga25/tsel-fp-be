@@ -22,6 +22,7 @@ import {
   type Account,
   ListAccountsCommand,
   OrganizationsClient,
+  DescribeAccountCommand,
 } from '@aws-sdk/client-organizations';
 import {
   type AccountAssignmentForPrincipal,
@@ -1132,6 +1133,20 @@ export const deleteAccountAssignment = async (
       AccountAssignmentDeletionStatus.FailureReason,
     ]);
   }
+};
+
+export const describeAwsAccount = async (awsAccountId: string) => {
+  const { Account } = await organizations.send(
+    new DescribeAccountCommand({
+      AccountId: awsAccountId,
+    })
+  );
+
+  return {
+    id: Account?.Id,
+    arn: Account?.Arn,
+    name: Account?.Name,
+  };
 };
 
 export const describeGroup = async (groupId: string) => {

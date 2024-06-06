@@ -15,23 +15,22 @@ datasource db {
 
 model User {
   id       String  @id @default(cuid())
-  username String
+  username String  @unique
   password String
   name     String
-  email    String?
+  email    String? @unique
 
   role                        Role                @default(USER)
   assignmentRequestRequesters AssignmentRequest[] @relation("requester")
   assignmentRequestResponders AssignmentRequest[] @relation("responder")
 
   principalUserId String? @unique
+  isApprover      Boolean @default(false)
+  isRoot          Boolean @default(false)
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   freezeTimes FreezeTime[]
-
-  @@unique([username, role])
-  @@unique([email, role])
 }
 
 model IdentityInstance {
@@ -98,6 +97,12 @@ model FreezeTime {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  message   String
+  createdAt DateTime @default(now())
 }
 
 enum FreezeTimeTarget {

@@ -8,7 +8,7 @@ synchronizeAccountUserRouter.post(
   '/users.synchronize',
   adminOnlyMiddleware,
   asyncErrorHandler(async (req: IAuthRequest, res) => {
-    await synchronizeAccountUserService();
+    await synchronizeAccountUserService(req.user);
     res.status(200).send({
       ok: true,
     });

@@ -71,14 +71,23 @@ export const CreateAccountAdminSchema = object({
   ]),
 });
 
+const PrincipalUserIdsSchema = array(
+  string('Principal user id must be a string', [
+    uuid('Please enter a valid principal user id.'),
+  ]),
+  'The input must be an array of principal user ids.',
+  [minLength(1, 'Please input at least one principal user id.')]
+);
 export const CreateAccountAdminBulkSchema = object({
-  principalUserIds: array(
-    string('Principal user id must be a string', [
-      uuid('Please enter a valid principal user id.'),
-    ]),
-    'The input must be an array of principal user ids.',
-    [minLength(1, 'Please input at least one principal user id.')]
-  ),
+  principalUserIds: PrincipalUserIdsSchema,
+});
+
+export const CreateApproversSchema = object({
+  principalUserIds: PrincipalUserIdsSchema,
+});
+
+export const DeleteApproverSchema = object({
+  userId: string('User id must be a string', [minLength(5)]),
 });
 
 export const UpdateAccountUserSchema = object({
@@ -98,9 +107,11 @@ export const UpdateAccountUserSchema = object({
   id: string('Id must be a string', [minLength(1, 'Please enter the id.')]),
 });
 
+export type DeleteApproverData = Output<typeof DeleteApproverSchema>;
 export type CreateAccountAdminBulkData = Output<
   typeof CreateAccountAdminBulkSchema
 >;
+export type CreateApproversData = Output<typeof CreateApproversSchema>;
 export type CreateAccountUserData = Output<typeof CreateAccountUserSchema>;
 export type CreateAccountAdminData = Output<typeof CreateAccountAdminSchema>;
 export type UpdateAccountUserData = Output<typeof UpdateAccountUserSchema>;

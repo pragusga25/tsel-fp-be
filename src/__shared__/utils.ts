@@ -3,7 +3,7 @@ import {
   AccessTokenExpiredError as ATex,
   RefreshTokenExpiredError as RTex,
 } from './errors';
-import { IJwtPayload } from './interfaces';
+import { IJwtPayload, Trx } from './interfaces';
 import {
   sign,
   verify,
@@ -11,6 +11,7 @@ import {
   TokenExpiredError,
 } from 'jsonwebtoken';
 import { Response } from 'express';
+import { db } from '../db';
 
 export const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 export class JwtUtil {
@@ -109,4 +110,20 @@ export const getLocaleDateString = (
   }
 
   return `${dateStr}-${monthStr}-${yearStr}`;
+};
+
+export const createLog = async (message: string, trx?: Trx) => {
+  if (trx) {
+    await trx.log.create({
+      data: {
+        message,
+      },
+    });
+    return;
+  }
+  await db.log.create({
+    data: {
+      message,
+    },
+  });
 };

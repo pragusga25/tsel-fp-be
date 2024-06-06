@@ -9,3 +9,6 @@ export * from './me.service';
 export * from './synchronize-account-user.service';
 export * from './reset-account-user-password.service';
 export * from './create-account-admin-bulk.service';
+export * from './list-approvers.service';
+export * from './create-approvers.service';
+export * from './delete-approver.service';

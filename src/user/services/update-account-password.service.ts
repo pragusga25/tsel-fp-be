@@ -1,3 +1,4 @@
+import { createLog } from '../../__shared__/utils';
 import { db } from '../../db';
 import { UserNotFoundError, UserPasswordIncorrectError } from '../errors';
 import { UpdateAccountPasswordData } from '../validations';
@@ -32,4 +33,8 @@ export const updateAccountPasswordService = async (
       password: hashedPassword,
     },
   });
+
+  const logMessage = `${user.name} mengubah password akunnya.`;
+
+  await createLog(logMessage);
 };

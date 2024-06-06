@@ -15,7 +15,7 @@ resetAccountUserPasswordRouter.post(
   validationBodyMiddleware(ResetAccountUserPasswordSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
     const payload = req.body;
-    await resetAccountUserPasswordService(payload);
+    await resetAccountUserPasswordService(payload, req.user);
     res.status(200).send({
       ok: true,
     });
