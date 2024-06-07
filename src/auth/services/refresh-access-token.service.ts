@@ -1,8 +1,17 @@
 import { JwtUtil } from '../../__shared__/utils';
 
 export const refreshAccessTokenService = async (refreshToken: string) => {
-  const { id, role, username, name, principalId, principalType } =
-    JwtUtil.verifyToken(refreshToken);
+  const {
+    id,
+    role,
+    username,
+    name,
+    principalId,
+    principalType,
+    isApprover,
+    isRoot,
+    email,
+  } = JwtUtil.verifyToken(refreshToken);
 
   const user = {
     id,
@@ -11,6 +20,9 @@ export const refreshAccessTokenService = async (refreshToken: string) => {
     name,
     principalId,
     principalType,
+    isApprover,
+    isRoot,
+    email,
   };
 
   const accessToken = JwtUtil.generateAccessToken(user);

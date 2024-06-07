@@ -24,6 +24,8 @@ export const loginService = async (data: LoginData) => {
       name: true,
       role: true,
       email: true,
+      isRoot: true,
+      isApprover: true,
       password: true,
     },
   });

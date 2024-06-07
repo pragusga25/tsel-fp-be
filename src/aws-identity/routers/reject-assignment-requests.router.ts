@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Response, Router } from 'express';
 import { rejectAssignmentRequestService } from '../services';
 import {
-  adminOnlyMiddleware,
+  rootOrApproverMiddleware,
   validationBodyMiddleware,
 } from '../../__middlewares__';
 import { RejectAssignmentRequestsSchema } from '../validations';
@@ -10,9 +10,9 @@ import { IAuthRequest } from '../../__shared__/interfaces';
 export const rejectAssignmentRequestsRouter = Router();
 rejectAssignmentRequestsRouter.post(
   '/assignment-requests.reject',
-  adminOnlyMiddleware,
+  rootOrApproverMiddleware(),
   validationBodyMiddleware(RejectAssignmentRequestsSchema),
-  async (req: IAuthRequest, res) => {
+  async (req: IAuthRequest, res: Response) => {
     const { ids } = req.body;
 
     await Promise.all(

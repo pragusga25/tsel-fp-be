@@ -1,14 +1,22 @@
 import { Router } from 'express';
-import { adminOnlyMiddleware } from '../../__middlewares__';
+import {
+  adminOnlyMiddleware,
+  validationQueryMiddleware,
+} from '../../__middlewares__';
 import { IAuthRequest } from '../../__shared__/interfaces';
 import { listLogsService } from '../services';
+import { ListLogsData, ListLogsSchema } from '../validations';
 
 export const listLogsRouter = Router();
 listLogsRouter.get(
   '/logs.list',
+
   adminOnlyMiddleware,
-  async (_req: IAuthRequest, res) => {
-    const result = await listLogsService();
+  validationQueryMiddleware(ListLogsSchema),
+  async (req: IAuthRequest, res) => {
+    const query = req.query as unknown as ListLogsData;
+    console.log(query);
+    const result = await listLogsService(query);
     res.status(200).send({
       ok: true,
       ...result,

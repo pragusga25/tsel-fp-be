@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { acceptAssignmentRequestService } from '../services';
 import {
-  adminOnlyMiddleware,
   asyncErrorHandler,
+  rootOrApproverMiddleware,
   validationBodyMiddleware,
 } from '../../__middlewares__';
 import { AcceptAssignmentRequestsSchema } from '../validations';
@@ -11,7 +11,7 @@ import { IAuthRequest } from '../../__shared__/interfaces';
 export const acceptAssignmentRequestsRouter = Router();
 acceptAssignmentRequestsRouter.post(
   '/assignment-requests.accept',
-  adminOnlyMiddleware,
+  rootOrApproverMiddleware(),
   validationBodyMiddleware(AcceptAssignmentRequestsSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
     const { ids, operation } = req.body;

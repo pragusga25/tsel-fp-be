@@ -8,6 +8,8 @@ export interface IJwtPayload extends JwtPayload {
   username: string;
   role: Role;
   name: string;
+  isRoot: boolean;
+  isApprover: boolean;
   email?: string | null;
 }
 

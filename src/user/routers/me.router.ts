@@ -15,9 +15,13 @@ meRouter.get('/me', authMiddleware, async (req: IAuthRequest, res) => {
       ...result,
     });
   } catch (err) {
+    console.log('refreshToken', req.cookies.refreshToken);
     if (err instanceof UserNotFoundError) {
+      console.error('ERR: ', err);
       HttpUtil.deleteCookie(res);
     }
-    throw err;
+    res.status(404).send({
+      ok: true,
+    });
   }
 });

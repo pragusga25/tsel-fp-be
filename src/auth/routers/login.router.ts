@@ -12,18 +12,24 @@ loginRouter.post(
   '/auth.login',
   validationBodyMiddleware(LoginSchema),
   asyncErrorHandler(async (req, res) => {
-    const payload = req.body;
-    const {
-      result: { accessToken, refreshToken, user },
-    } = await loginService(payload);
-    HttpUtil.attachRefreshToken(res, refreshToken);
+    try {
+      const payload = req.body;
+      const {
+        result: { accessToken, refreshToken, user },
+      } = await loginService(payload);
+      HttpUtil.attachRefreshToken(res, refreshToken);
 
-    res.status(200).send({
-      ok: true,
-      result: {
-        accessToken,
-        user,
-      },
-    });
+      res.status(200).send({
+        ok: true,
+        result: {
+          accessToken,
+          user,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      HttpUtil.deleteCookie(res);
+      throw e;
+    }
   })
 );

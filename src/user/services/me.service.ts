@@ -12,6 +12,8 @@ export const meService = async (userId: string) => {
       role: true,
       email: true,
       principalUserId: true,
+      isApprover: true,
+      isRoot: true,
     },
   });
 
