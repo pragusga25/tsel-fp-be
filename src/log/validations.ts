@@ -18,6 +18,8 @@ export const ListLogsSchema = transform(
         string([regex(/^\d+$/, 'Cursor must be a number.')]),
         '0'
       ),
+      from: optional(string([regex(/^\d+$/, 'From must be a number.')])),
+      to: optional(string([regex(/^\d+$/, 'To must be a number.')])),
     },
     [
       forward(
@@ -27,10 +29,28 @@ export const ListLogsSchema = transform(
         ),
         ['cursor']
       ),
+      forward(
+        custom(
+          ({ from }) => (from ? Number(from) > 0 : true),
+          'From must be greater than or equal to 0.'
+        ),
+        ['from']
+      ),
+      forward(
+        custom(
+          ({ to }) => (to ? Number(to) > 0 : true),
+          'To must be greater than or equal to 0.'
+        ),
+        ['to']
+      ),
     ]
   ),
-  ({ cursor }) => {
-    return { cursor: Number(cursor) };
+  ({ cursor, from, to }) => {
+    return {
+      cursor: Number(cursor),
+      from: from ? new Date(Number(from)) : undefined,
+      to: to ? new Date(Number(to)) : undefined,
+    };
   }
 );
 

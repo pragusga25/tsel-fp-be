@@ -72,6 +72,40 @@ export class HttpUtil {
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+export const formatDateId = (timestamp: string | Date, withTimes = true) => {
+  const months = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
+  const date = new Date(timestamp);
+  const day = date.getDate();
+  const monthName = months[date.getMonth()];
+  const year = date.getFullYear();
+
+  let text = `${day} ${monthName} ${year}`;
+
+  if (withTimes) {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const hoursPadStr = hours.toString().padStart(2, '0');
+    const minutesPadStr = minutes.toString().padStart(2, '0');
+    text += ` ${hoursPadStr}:${minutesPadStr}`;
+  }
+
+  return text;
+};
+
 export const getLocaleDateString = (
   date: Date,
   opts?: Partial<{

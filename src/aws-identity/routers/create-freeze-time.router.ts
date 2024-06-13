@@ -20,7 +20,7 @@ createFreezeTimeRouter.post(
         ...payload,
         creatorId: req.user!.id,
       },
-      res
+      req.user
     );
 
     res.status(201).send({

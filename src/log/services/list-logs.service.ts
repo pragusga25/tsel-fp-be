@@ -1,13 +1,19 @@
 import { db } from '../../db';
 import { ListLogsData } from '../validations';
 
-export const listLogsService = async ({ cursor }: ListLogsData) => {
+export const listLogsService = async ({ cursor, from, to }: ListLogsData) => {
   const resultPromise = db.log.findMany({
     orderBy: {
       createdAt: 'desc',
     },
     skip: cursor * 50,
     take: 50,
+    where: {
+      createdAt: {
+        gte: from,
+        lte: to,
+      },
+    },
   });
 
   const countAllPromise = db.log.count();

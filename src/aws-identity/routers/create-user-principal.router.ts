@@ -15,7 +15,7 @@ createUserPrincipalRouter.post(
   validationBodyMiddleware(CreateUserPrincipalSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
     const payload = req.body;
-    const result = await createUserPrincipalService(payload);
+    const result = await createUserPrincipalService(payload, req.user);
 
     res.status(201).send({
       ok: true,

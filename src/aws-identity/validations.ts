@@ -213,6 +213,22 @@ export const DeleteAccountAssignmentSchema = object({
   id: string('Id must be a string', [minLength(1, 'Please enter an id.')]),
 });
 
+export const UpdatePermissionSetSchema = object({
+  arn: PermissionSetArnSchema,
+
+  tags: optional(
+    object({
+      operation: picklist(
+        ['SHOW', 'HIDE'],
+        'Operation must be either SHOW or HIDE'
+      ),
+      values: string('Values must be a string', [
+        minLength(1, 'Please enter a username.'),
+      ]),
+    })
+  ),
+});
+
 export const CountAssignmentRequestsSchema = object({
   status: optional(
     picklist(
@@ -350,6 +366,7 @@ export const UpdatePrincipalUserSchema = object({
   ),
 });
 
+export type UpdatePermissionSetData = Output<typeof UpdatePermissionSetSchema>;
 export type CreateUserPrincipalData = Output<typeof CreateUserPrincipalSchema>;
 export type CreateGroupPrincipalData = Output<
   typeof CreateGroupPrincipalSchema

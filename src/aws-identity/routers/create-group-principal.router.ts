@@ -15,7 +15,7 @@ createGroupPrincipalRouter.post(
   validationBodyMiddleware(CreateGroupPrincipalSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
     const payload = req.body;
-    const result = await createGroupPrincipalService(payload);
+    const result = await createGroupPrincipalService(payload, req.user);
 
     res.status(201).send({
       ok: true,

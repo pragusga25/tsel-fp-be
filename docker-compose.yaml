@@ -7,10 +7,19 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '8080:8080'
+      - '3000:3000'
     restart: unless-stopped
-    env_file:
-      - .env
+    # env_file:
+    #   - .env
+    environment:
+      AWS_ACCESS_KEY_ID: 'ASIAYRK7PHY36A72M2ET'
+      AWS_SECRET_ACCESS_KEY: '+Edj5OdCqS/jGQmk7cD69RdvLizby9weDe00nghu'
+      AWS_SESSION_TOKEN: 'IQoJb3JpZ2luX2VjEN///////////wEaDmFwLXNvdXRoZWFzdC0zIkcwRQIgTAHYW+IfBFzUFomWV6voLSkEge0u96gi5vkxsLgd08gCIQDvtZYBX3bbv/EmxQB6FeHP5DBj1ga45E0q61m24DbQ/Cr5Agjg//////////8BEAMaDDU4NzAwMDEzNTIyMyIMw/EWoFoz3JS1y8W1Ks0CsdPTrpr1DHPcgag8n1icXj5/94ZhwHWcka5mtWEOwINKZ6C4XTdR5aChevmLOFtGBCMvyRd5KOruk3YVZETSNze3sfmak7TDEhyvZ28yYcXwyG7wFuqDkTGtOtaDAfjRthNLTSFLlwuyreqJ5Y/Rj+4CqGSmERJ9FnR6RfJDyJfflGpmrPskxxwOGC1UFeQBO9ceY+5upjXQOYn2g42jxNnoTK0gJj2beOwQRC9hsJxjvJm0PeJ9KpN6SucWbrxp3qiRaSR4pu4MTowFT6W0qyF8NDDihB6k476MFomkBIB1RQeYUVpoCQqpi2yq5sF0h5db41/Z39LHcVSdgzCAfE2Cg9fNNog1BYTcIwDHK7wyuhpYo8Ho0kiDwfKKM7eSzEv7RzNrZQly5qbe64bi47KWc+x9TIZrDMNE0FT7iehrqkE469vVJozM6jTuMOn/iLMGOqcBE4fdW+iybOuEuIXzeW7mfCvpO3yPwBqB5F5DI7+ECzYAoVhviOYDtzV9MlwBQT7Y7zCaNUqFjclsyaBNWi0nR1xCLbAS3jm2xg9hhKajTpXidgkLlr6lzrsTMkctU/wYCj9EGxLH8f0YnQ4044HjjomSi+iX7l3VcEKZ0WaJ9R9gG9jC5J84yxBZZFGiLuXOWXWSFTOjPnMKUP+qsS+lqqsztXQLdGg='
+      AWS_REGION: 'ap-southeast-3'
+      DATABASE_URL: 'postgresql://postgres:postgres@tsel-db:5432/postgres?schema=public'
+      JWT_SECRET: 'poufafasfewfefe'
+      API_KEY: '1234567890'
+      PORT: '3000'
 
   db:
     container_name: tsel-db

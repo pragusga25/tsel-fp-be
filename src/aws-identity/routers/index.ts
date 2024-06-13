@@ -38,6 +38,7 @@ import { listUserAssignmentsRouter } from './list-user-assignments.router';
 import { listGroupAssignmentsRouter } from './list-group-assignments.router';
 import { schedulerRollbackAssignmentsRouter } from './scheduler-rollback-assignments.router';
 import { schedulerFreezeAssignmentsRouter } from './scheduler-freeze-assignments.router';
+import { updatePermissionSetRouter } from './update-permission-set.router';
 
 export const awsIdentityRouters = [
   listGroupPrincipalsRouter,
@@ -80,4 +81,5 @@ export const awsIdentityRouters = [
   listGroupAssignmentsRouter,
   schedulerFreezeAssignmentsRouter,
   schedulerRollbackAssignmentsRouter,
+  updatePermissionSetRouter,
 ];

@@ -1,21 +1,21 @@
 import { Router } from 'express';
-import { deleteFreezeTimesService } from '../services';
+import { updatePermissionSetService } from '../services';
 import {
   adminOnlyMiddleware,
   asyncErrorHandler,
   validationBodyMiddleware,
 } from '../../__middlewares__';
-import { DeleteFreezeTimesSchema } from '../validations';
+import { UpdatePermissionSetSchema } from '../validations';
 import { IAuthRequest } from '../../__shared__/interfaces';
 
-export const deleteFreezeTimesRouter = Router();
-deleteFreezeTimesRouter.post(
-  '/freeze-times.delete',
+export const updatePermissionSetRouter = Router();
+updatePermissionSetRouter.post(
+  '/permission-sets.update',
   adminOnlyMiddleware,
-  validationBodyMiddleware(DeleteFreezeTimesSchema),
+  validationBodyMiddleware(UpdatePermissionSetSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
     const payload = req.body;
-    await deleteFreezeTimesService(payload, req.user!);
+    await updatePermissionSetService(payload);
 
     res.status(200).send({
       ok: true,

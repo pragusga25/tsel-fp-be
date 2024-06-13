@@ -11,7 +11,7 @@ import {
   listPermissionSetArnsInSet,
 } from '../helper';
 import { ExcludedPrincipals } from '../types';
-import { sleep } from '../../__shared__/utils';
+import { createLog, sleep } from '../../__shared__/utils';
 import { Response } from 'express';
 
 export const schedulerFreezeAssignmentsService = async (
@@ -125,11 +125,26 @@ export const schedulerFreezeAssignmentsService = async (
     }
   };
 
+  const executeStart = async () => {
+    await db.freezeTime.update({
+      where: {
+        name,
+      },
+      data: {
+        isExecutedAtStart: true,
+      },
+    });
+  };
+
   if (res) {
     res.on('finish', async () => {
       await doTheJob();
+      await executeStart();
+      await createLog('Sistem melakukan freeze assignments');
     });
   } else {
     await doTheJob();
+    await executeStart();
+    await createLog('Sistem melakukan freeze assignments');
   }
 };

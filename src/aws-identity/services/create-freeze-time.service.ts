@@ -1,4 +1,3 @@
-import { Response } from 'express';
 import { db } from '../../db';
 import {
   FreezeTimeConflictError,
@@ -8,10 +7,12 @@ import {
 import { CreateFreezeTimeData } from '../validations';
 // import { directFreezeAssignmentsService } from './direct-freeze-assignment.service';
 import { createOneTimeSchedule } from '../helper';
+import { IJwtPayload } from '../../__shared__/interfaces';
+import { createLog, formatDateId } from '../../__shared__/utils';
 
 export const createFreezeTimeService = async (
   data: CreateFreezeTimeData,
-  res?: Response
+  currentUser?: IJwtPayload
 ) => {
   const { startTime, endTime } = data;
   const schedulerPromise = db.identityInstance.findFirst({});
@@ -52,6 +53,12 @@ export const createFreezeTimeService = async (
       startTime,
       endTime,
     });
+
+    const startTimeStr = formatDateId(startTime, true);
+    const endTimeStr = formatDateId(endTime, true);
+
+    const logMessage = `${currentUser?.name} membuat freeze time dengan nama ${data.name} dari ${startTimeStr} sampai ${endTimeStr}`;
+    await createLog(logMessage, trx);
 
     return result;
   });

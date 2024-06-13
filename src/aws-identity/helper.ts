@@ -35,6 +35,9 @@ import {
   ListInstancesCommand,
   ListPermissionSetsCommand,
   SSOAdminClient,
+  ListTagsForResourceCommand,
+  UpdatePermissionSetCommand,
+  TagResourceCommand,
 } from '@aws-sdk/client-sso-admin';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { PrincipalType } from '@prisma/client';
@@ -50,6 +53,7 @@ import type {
   CreatePrincipalData,
   CreateUserPrincipalData,
   DeletePrincipalData,
+  UpdatePermissionSetData,
   UpdatePrincipalData,
   UpdatePrincipalGroupData,
   UpdatePrincipalUserData,
@@ -906,8 +910,60 @@ export const listPermissionSetArnsInSet = async () => {
   return new Set(permissionSetArns);
 };
 
-export const describePermissionSet = async (permissionSetArn: string) => {
+export const getPsTagsInfo = (tags: Record<string, string>) => {
+  let showOrHide: 'SHOW' | 'HIDE' = 'HIDE';
+  let showHideValue = 'ALL USERS';
+
+  if ('showTo' in tags) {
+    showHideValue = tags['showTo'];
+    showOrHide = 'SHOW';
+  }
+
+  if ('hideFrom' in tags) {
+    showHideValue = tags['hideFrom'];
+    showOrHide = 'HIDE';
+  }
+
+  const isShow = showOrHide === 'SHOW';
+  const isAll = showHideValue === 'ALL USERS';
+
+  return {
+    showOrHide,
+    showHideValue,
+    isShow,
+    isAll,
+  };
+};
+
+export const updatePermissionSet = async (data: UpdatePermissionSetData) => {
+  const { arn, tags } = data;
+
   const { instanceArn } = await getIdentityInstanceOrThrow();
+
+  if (tags) {
+    const { isShow, isAll } = getPsTagsInfo(tags);
+    await ssoAdmin.send(
+      new TagResourceCommand({
+        InstanceArn: instanceArn,
+        ResourceArn: arn,
+        Tags: [
+          {
+            Key: isShow ? 'showTo' : 'hideFrom',
+            Value: isAll ? 'ALL USERS' : tags.values,
+          },
+        ],
+      })
+    );
+  }
+};
+
+export const describePermissionSet = async (
+  permissionSetArn: string,
+  withTags = false
+) => {
+  const { instanceArn } = await getIdentityInstanceOrThrow();
+
+  let tags: Record<string, string> = {};
 
   const { PermissionSet } = await ssoAdmin.send(
     new DescribePermissionSetCommand({
@@ -918,6 +974,24 @@ export const describePermissionSet = async (permissionSetArn: string) => {
 
   if (!PermissionSet) throw new PermissionSetNotFoundError();
 
+  if (withTags) {
+    const { Tags } = await ssoAdmin.send(
+      new ListTagsForResourceCommand({
+        ResourceArn: permissionSetArn,
+        InstanceArn: instanceArn,
+      })
+    );
+
+    if (!!Tags && Tags.length > 0) {
+      tags = Tags.reduce<typeof tags>((acc, tag) => {
+        if (tag.Key) {
+          acc[tag.Key] = tag.Value ?? '';
+        }
+        return acc;
+      }, {});
+    }
+  }
+
   return {
     name: PermissionSet.Name ?? null,
     description: PermissionSet.Description ?? null,
@@ -925,14 +999,15 @@ export const describePermissionSet = async (permissionSetArn: string) => {
     permissionSetArn: PermissionSet.PermissionSetArn ?? null,
     sessionDuration: PermissionSet.SessionDuration ?? null,
     relayState: PermissionSet.RelayState ?? null,
+    tags,
   };
 };
 
-export const describeAllPermissionSets = async () => {
+export const describeAllPermissionSets = async (withTags = false) => {
   const permissionSets = await listPermissionSets();
 
   const describePermissionSetsPromises = permissionSets.map((permissionSet) =>
-    describePermissionSet(permissionSet)
+    describePermissionSet(permissionSet, withTags)
   );
 
   return Promise.all(describePermissionSetsPromises);
