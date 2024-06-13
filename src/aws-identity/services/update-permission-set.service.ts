@@ -1,7 +1,7 @@
 import { IJwtPayload } from '../../__shared__/interfaces';
 import { createLog } from '../../__shared__/utils';
 import { db } from '../../db';
-import { getPsTagsInfo, updatePermissionSet } from '../helper';
+import { getPsTagsInfoPayload, updatePermissionSet } from '../helper';
 import { UpdatePermissionSetData } from '../validations';
 
 export const updatePermissionSetService = async (
@@ -11,7 +11,7 @@ export const updatePermissionSetService = async (
   const { tags, arn } = data;
 
   if (tags) {
-    const { isAll, isShow } = getPsTagsInfo(tags);
+    const { isAll, isShow } = getPsTagsInfoPayload(tags);
 
     const txt1 = isAll
       ? 'ke semua user'

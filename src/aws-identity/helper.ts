@@ -38,6 +38,7 @@ import {
   ListTagsForResourceCommand,
   UpdatePermissionSetCommand,
   TagResourceCommand,
+  UntagResourceCommand,
 } from '@aws-sdk/client-sso-admin';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { PrincipalType } from '@prisma/client';
@@ -935,13 +936,40 @@ export const getPsTagsInfo = (tags: Record<string, string>) => {
   };
 };
 
+export const getPsTagsInfoPayload = (tags: {
+  operation: 'SHOW' | 'HIDE';
+  values: string;
+}) => {
+  let showOrHide: 'SHOW' | 'HIDE' = tags.operation;
+  let showHideValue = tags.values;
+
+  const isShow = showOrHide === 'SHOW';
+  const isAll = showHideValue === 'ALL USERS';
+
+  return {
+    showOrHide,
+    showHideValue,
+    isShow,
+    isAll,
+  };
+};
+
 export const updatePermissionSet = async (data: UpdatePermissionSetData) => {
   const { arn, tags } = data;
 
   const { instanceArn } = await getIdentityInstanceOrThrow();
 
   if (tags) {
-    const { isShow, isAll } = getPsTagsInfo(tags);
+    const { isShow, isAll } = getPsTagsInfoPayload(tags);
+    console.table({ isShow, isAll });
+    await ssoAdmin.send(
+      new UntagResourceCommand({
+        ResourceArn: arn,
+        InstanceArn: instanceArn,
+        TagKeys: ['showTo', 'hideFrom'],
+      })
+    );
+
     await ssoAdmin.send(
       new TagResourceCommand({
         InstanceArn: instanceArn,
