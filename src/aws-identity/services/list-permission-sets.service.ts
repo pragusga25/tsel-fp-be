@@ -33,7 +33,7 @@ export const listPermissionSetsService = async (currentUser: IJwtPayload) => {
     arn: permissionSet.permissionSetArn,
     name: permissionSet.name,
     description: permissionSet.description,
-    tags: permissionSet.tags,
+    tags: isUser ? undefined : permissionSet.tags,
   }));
 
   return { result };
