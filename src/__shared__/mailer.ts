@@ -21,14 +21,16 @@ sgMailer.setApiKey(config.SENDGRID_API_KEY ?? '');
 export const sendEmail = async (
   input: Omit<SendEmailCommandInput, 'Source'>
 ) => {
-  await ses
-    .send(
-      new SendEmailCommand({
-        Source: config.AWS_SES_SENDER_EMAIL,
-        ...input,
-      })
-    )
-    .catch(console.error);
+  if (config.AWS_SES_SENDER_EMAIL) {
+    await ses
+      .send(
+        new SendEmailCommand({
+          Source: config.AWS_SES_SENDER_EMAIL,
+          ...input,
+        })
+      )
+      .catch(console.error);
+  }
 
   if (config.SENDGRID_API_KEY && config.SENDGRID_SENDER_EMAIL) {
     await sgMailer
