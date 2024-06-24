@@ -19,6 +19,9 @@ import {
   custom,
   transform,
   maxLength,
+  number,
+  minValue,
+  maxValue,
 } from 'valibot';
 
 export const PrincipalIdSchema = string('PrincipalId must be a string.', [
@@ -122,10 +125,10 @@ const IdsSchema = array(
 );
 export const AcceptAssignmentRequestsSchema = object({
   ids: IdsSchema,
-  operation: picklist(
-    Object.values(AssignmentOperation),
-    'Operation must be either ATTACH or DETACH.'
-  ),
+  // operation: picklist(
+  //   Object.values(AssignmentOperation),
+  //   'Operation must be either ATTACH or DETACH.'
+  // ),
 });
 export const RejectAssignmentRequestsSchema = object({
   ids: IdsSchema,
@@ -212,6 +215,56 @@ export const DeleteAssignmentRequestsSchema = object({
 export const DeleteAccountAssignmentSchema = object({
   id: string('Id must be a string', [minLength(1, 'Please enter an id.')]),
 });
+
+export const TimeInHourSchema = number('Time must be a number', [
+  minValue(1, 'Time must be greater than 0.'),
+  maxValue(24, 'Time must be less than 24.'),
+]);
+export const CreateTimeInHourSchema = object({
+  timeInHour: TimeInHourSchema,
+});
+
+export const DeleteTimeInHourSchema = object({
+  timeInHour: TimeInHourSchema,
+});
+
+export const ListGroupPrincipalsSchema = object({
+  mode: optional(
+    picklist(['withoutMemberships', 'withMemberships']),
+    'withMemberships'
+  ),
+});
+
+export type DeleteTimeInHourData = Output<typeof DeleteTimeInHourSchema>;
+export type ListGroupPrincipalsData = Output<typeof ListGroupPrincipalsSchema>;
+
+export type CreateTimeInHourData = Output<typeof CreateTimeInHourSchema>;
+
+export const CreateAssignmentUserRequestSchema = object({
+  timeInHour: TimeInHourSchema,
+  awsAccountId: AwsAccountIdSchema,
+  permissionSetArn: PermissionSetArnSchema,
+});
+
+export type CreateAssignmentUserRequestData = Output<
+  typeof CreateAssignmentUserRequestSchema
+>;
+
+export const AcceptAssignmentUserRequestSchema = object({
+  id: string([minLength(1, 'Please enter an id.')]),
+});
+export const RejectAssignmentUserRequestSchema =
+  AcceptAssignmentUserRequestSchema;
+export const DeleteAssignmentUserRequestSchema =
+  AcceptAssignmentUserRequestSchema;
+
+export type AcceptAssignmentUserRequestData = Output<
+  typeof AcceptAssignmentUserRequestSchema
+>;
+
+export type RejectAssignmentUserRequestData = AcceptAssignmentUserRequestData;
+
+export type DeleteAssignmentUserRequestData = AcceptAssignmentUserRequestData;
 
 export const UpdatePermissionSetSchema = object({
   arn: PermissionSetArnSchema,

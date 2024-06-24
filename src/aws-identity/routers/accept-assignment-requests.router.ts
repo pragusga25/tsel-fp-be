@@ -14,11 +14,9 @@ acceptAssignmentRequestsRouter.post(
   rootOrApproverMiddleware(),
   validationBodyMiddleware(AcceptAssignmentRequestsSchema),
   asyncErrorHandler(async (req: IAuthRequest, res) => {
-    const { ids, operation } = req.body;
+    const { ids } = req.body;
     await Promise.all(
-      ids.map((id: string) =>
-        acceptAssignmentRequestService(req.user!.id, id, operation)
-      )
+      ids.map((id: string) => acceptAssignmentRequestService(req.user!.id, id))
     );
 
     res.status(200).send({

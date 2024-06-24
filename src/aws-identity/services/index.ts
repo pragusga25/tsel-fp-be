@@ -41,3 +41,7 @@ export * from './list-user-assignments.service';
 export * from './scheduler-freeze-assignments.service';
 export * from './scheduler-rollback-assignments.service';
 export * from './update-permission-set.service';
+export * from './get-assignment-user-request-form-data.service';
+export * from './create-time-in-hour.service';
+export * from './delete-time-in-hour.service';
+export * from './scheduler-detach-assignment-user-request.service';

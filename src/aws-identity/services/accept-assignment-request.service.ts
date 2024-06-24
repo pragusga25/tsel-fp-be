@@ -8,18 +8,25 @@ import { changeAssignmentStatusService } from './change-assignment-status.servic
 
 export const acceptAssignmentRequestService = async (
   responderId: string,
-  id: string,
-  operation: AssignmentOperation
+  id: string
 ) => {
   await changeAssignmentStatusService(
     responderId,
     id,
     AssignmentRequestStatus.ACCEPTED,
-    async ({ permissionSetArns: psa, ...rest }) => {
+    async ({ permissionSetArns: psa, ...rest }, trx) => {
       const permissionSetArnssSet = await listPermissionSetArnsInSet();
       const permissionSetArns = psa.filter((permissionSetArn) =>
         permissionSetArnssSet.has(permissionSetArn)
       );
+      const { operation } = await trx.assignmentRequest.findUniqueOrThrow({
+        where: {
+          id,
+        },
+        select: {
+          operation: true,
+        },
+      });
 
       const accountAssignmentPromises = permissionSetArns.map(
         (permissionSetArn) => {

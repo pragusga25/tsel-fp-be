@@ -14,8 +14,8 @@ export const updatePermissionSetService = async (
     const { isAll, isShow } = getPsTagsInfoPayload(tags);
 
     const txt1 = isAll
-      ? 'ke semua user'
-      : `ke beberapa user dengan dengan username berikut: ${tags.values.replace(
+      ? 'ke semua group'
+      : `ke beberapa group dengan dengan nama-nama berikut: ${tags.values.replace(
           /;/g,
           ', '
         )}`;

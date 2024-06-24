@@ -41,7 +41,11 @@ import {
   UntagResourceCommand,
 } from '@aws-sdk/client-sso-admin';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { PrincipalType } from '@prisma/client';
+import {
+  PrincipalType,
+  AssignmentOperation,
+  AssignmentRequestStatus,
+} from '@prisma/client';
 import { config } from '../__shared__/config';
 import { db } from '../db';
 import {
@@ -64,7 +68,9 @@ import {
   CreateScheduleCommand,
   DeleteScheduleCommand,
 } from '@aws-sdk/client-scheduler';
-import { getLocaleDateString } from '../__shared__/utils';
+import { getLocaleDateString, sleep } from '../__shared__/utils';
+import { SchedulerAction } from './types';
+import { sendEmail } from '../__shared__/mailer';
 
 const credentials = {
   accessKeyId: config.AWS_ACCESS_KEY_ID,
@@ -92,6 +98,182 @@ type CreateOneTimeSchedule = {
   name: string;
 };
 
+type SendEmailToApproversData = {
+  approverEmails: string[];
+  operation: AssignmentOperation;
+  permissionSetNames: string[];
+  groupName: string;
+  requesterName: string;
+  howLong?: string;
+  type?: 'GROUP' | 'USER';
+  id: string;
+};
+export const sendEmailToApprovers = async (data: SendEmailToApproversData) => {
+  const {
+    operation,
+    approverEmails,
+    groupName,
+    permissionSetNames,
+    requesterName,
+    howLong,
+    id,
+    type = 'GROUP',
+  } = data;
+
+  const ops = operation === AssignmentOperation.ATTACH ? 'Attach' : 'Detach';
+  let groupOrUser = 'group';
+  if (howLong) groupOrUser = 'user';
+
+  const subject = `${ops} Permission Sets Request for ${groupName}`;
+  const detailLink = `${config.FE_REQUEST_PAGE_URL}?id=${id}&type=${type}`;
+  const approveLink = `${config.FE_REQUEST_PAGE_URL}?action=accept&id=${id}&type=${type}`;
+  const rejectLink = `${config.FE_REQUEST_PAGE_URL}?action=reject&id=${id}&type=${type}`;
+
+  const permissionList = permissionSetNames
+    .map((set) => `<li>${set}</li>`)
+    .join('');
+  const htmlBody = `
+  <html>
+  <head>
+      <style>
+          .button {
+              display: inline-block;
+              padding: 10px 20px;
+              font-size: 16px;
+              color: #fff;
+              text-align: center;
+              text-decoration: none;
+              margin: 10px;
+              border-radius: 5px;
+          }
+          .approve-button {
+              background-color: #28a745;
+          }
+          .reject-button {
+              background-color: #dc3545;
+          }
+      </style>
+  </head>
+  <body>
+      <h3>Permission Sets ${ops}</h3>
+      <p>Dear Approver,</p>
+      <p>${requesterName} has requested to ${operation} the following permission sets to/from the ${groupOrUser} <strong>${groupName}</strong> ${
+    howLong ? `<strong>for ${howLong}</strong>` : ''
+  }:</p>
+      <ul>
+          ${permissionList}
+      </ul>
+      <p>Please review the request and take appropriate action:</p>
+      <p>
+          <a href="${approveLink}" class="button approve-button">Accept</a>
+          <a href="${rejectLink}" class="button reject-button">Reject</a>
+      </p>
+      <p>For more details, visit the <a href="${detailLink}">request details page</a>.</p>
+      <p>Thank you.</p>
+  </body>
+  </html>
+`;
+
+  await sendEmail({
+    Destination: {
+      // ToAddresses: approverEmails,
+      ToAddresses: ['pragusga.t@gmail.com'],
+    },
+    Message: {
+      Subject: {
+        Data: subject,
+      },
+      Body: {
+        Html: {
+          Data: htmlBody,
+        },
+      },
+    },
+  }).catch();
+};
+
+type SendEmailToApproverRequester = {
+  approverName: string;
+  requesterEmail: string;
+  permissionSetNames: string[];
+  groupName: string;
+  status: AssignmentRequestStatus;
+  operation: AssignmentOperation;
+  requesterName: string;
+};
+
+export const sendEmailToRequester = async (
+  data: SendEmailToApproverRequester
+) => {
+  const {
+    approverName,
+    groupName,
+    permissionSetNames,
+    requesterEmail,
+    requesterName,
+    status,
+    operation,
+  } = data;
+
+  const ops = operation === AssignmentOperation.ATTACH ? 'Attach' : 'Detach';
+  const opsL = ops.toLowerCase();
+
+  const subject = `${ops} Permission Sets Request for ${groupName}`;
+  const statusMessage =
+    status === AssignmentRequestStatus.ACCEPTED ? 'accepted' : 'rejected';
+
+  const statusMU =
+    status === AssignmentRequestStatus.ACCEPTED ? 'Accepted' : 'Rejected';
+
+  const permissionList = permissionSetNames
+    .map((set) => `<li>${set}</li>`)
+    .join('');
+
+  const htmlBody = `
+    <html>
+    <head>
+        <style>
+            .status-message {
+                font-size: 16px;
+                color: ${
+                  status === AssignmentRequestStatus.ACCEPTED
+                    ? '#28a745'
+                    : '#dc3545'
+                };
+            }
+        </style>
+    </head>
+    <body>
+        <h3>Permission Sets Request ${statusMU}</h3>
+        <p>Dear ${requesterName},</p>
+        <p>Your request to ${opsL} the following permission sets to/from the group <strong>${groupName}</strong> has been <span class="status-message">${statusMessage}</span> by ${approverName}:</p>
+        <ul>
+            ${permissionList}
+        </ul>
+        <p>If you have any questions or need further assistance, please contact the approver.</p>
+        <p>Thank you.</p>
+    </body>
+    </html>
+`;
+
+  await sendEmail({
+    Destination: {
+      // ToAddresses: [requesterEmail],
+      ToAddresses: ['pragusga.t@gmail.com'],
+    },
+    Message: {
+      Subject: {
+        Data: subject,
+      },
+      Body: {
+        Html: {
+          Data: htmlBody,
+        },
+      },
+    },
+  }).catch();
+};
+
 export const deleteSchedule = async (name: string) => {
   await scheduler
     .send(
@@ -109,6 +291,46 @@ export const deleteSchedule = async (name: string) => {
     )
     .catch((e) => {});
 };
+
+export const createOneTimeSchedulev1 = async ({
+  time,
+  name,
+  input,
+}: {
+  time: Date;
+  name: string;
+  input: Object;
+}) => {
+  const { schedulerRoleArn, schedulerTargetArn } =
+    await getIdentityInstanceOrThrow();
+
+  if (!schedulerRoleArn || !schedulerTargetArn) {
+    throw new Error('Scheduler role or target not set');
+  }
+
+  const timeStr =
+    getLocaleDateString(time, {
+      format: 'yyyy-mm-ddThh:MM',
+    }) + ':00';
+
+  await scheduler.send(
+    new CreateScheduleCommand({
+      Name: name,
+      ActionAfterCompletion: 'DELETE',
+      ScheduleExpression: `at(${timeStr})`,
+      Target: {
+        Arn: schedulerTargetArn,
+        RoleArn: schedulerRoleArn,
+        Input: JSON.stringify(input),
+      },
+      FlexibleTimeWindow: {
+        Mode: 'OFF',
+      },
+      ScheduleExpressionTimezone: 'Asia/Jakarta',
+    })
+  );
+};
+
 export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
   const { name, startTime, endTime } = data;
   const startTimeStr =
@@ -120,11 +342,18 @@ export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
       format: 'yyyy-mm-ddThh:MM',
     }) + ':00';
 
-  const targetArn =
-    'arn:aws:lambda:ap-southeast-3:587000135223:function:cron-aws-identity';
+  const { schedulerRoleArn, schedulerTargetArn } =
+    await getIdentityInstanceOrThrow();
 
-  const roleArn =
-    'arn:aws:iam::587000135223:role/service-role/Amazon_EventBridge_Scheduler_LAMBDA_38758e7cac';
+  if (!schedulerRoleArn || !schedulerTargetArn) {
+    throw new Error('Scheduler role or target not set');
+  }
+
+  // const targetArn =
+  //   'arn:aws:lambda:ap-southeast-3:587000135223:function:cron-aws-identity';
+
+  // const roleArn =
+  //   'arn:aws:iam::587000135223:role/service-role/Amazon_EventBridge_Scheduler_LAMBDA_38758e7cac';
 
   await scheduler.send(
     new CreateScheduleCommand({
@@ -132,10 +361,11 @@ export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
       ActionAfterCompletion: 'DELETE',
       ScheduleExpression: `at(${startTimeStr})`,
       Target: {
-        Arn: targetArn,
-        RoleArn: roleArn,
+        Arn: schedulerTargetArn,
+        RoleArn: schedulerRoleArn,
         Input: JSON.stringify({
           name,
+          action: SchedulerAction.FREEZE,
         }),
       },
       FlexibleTimeWindow: {
@@ -151,10 +381,11 @@ export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
       ActionAfterCompletion: 'DELETE',
       ScheduleExpression: `at(${endTimeStr})`,
       Target: {
-        Arn: targetArn,
-        RoleArn: roleArn,
+        Arn: schedulerTargetArn,
+        RoleArn: schedulerRoleArn,
         Input: JSON.stringify({
           name,
+          action: SchedulerAction.ROLLBACK,
         }),
       },
       FlexibleTimeWindow: {
@@ -390,7 +621,8 @@ export const getIdentityInstanceOrThrow = async () => {
 
 export const listAccountAssignmentsforPrincipal = async (
   principalId: string,
-  principalType: PrincipalType = PrincipalType.GROUP
+  principalType: PrincipalType = PrincipalType.GROUP,
+  strict = false
 ) => {
   const identityInstance = await getIdentityInstanceOrThrow();
 
@@ -406,6 +638,8 @@ export const listAccountAssignmentsforPrincipal = async (
       MaxResults: 99,
     })
   );
+
+  console.log('AccountAssignments: ', AccountAssignments);
 
   if (!AccountAssignments || AccountAssignments.length === 0) return [];
 
@@ -429,7 +663,7 @@ export const listAccountAssignmentsforPrincipal = async (
     accountAssignments.push(...AccountAssignments);
   }
 
-  return accountAssignments
+  const d = accountAssignments
     .filter(
       (assgn) =>
         !!assgn.AccountId &&
@@ -443,6 +677,25 @@ export const listAccountAssignmentsforPrincipal = async (
       principalId: assgn.PrincipalId!,
       principalType: assgn.PrincipalType!,
     }));
+
+  if (!strict) return d;
+
+  return d.filter(
+    (x) => x.principalId === principalId && x.principalType === principalType
+  );
+};
+
+export const getAllowedAwsAccounts = async (principalUserId: string) => {
+  const membershipsPromise = getUserMemberships(principalUserId);
+  const awsAccountsPromise = listAccounts();
+  const [memberships, awsAccounts] = await Promise.all([
+    membershipsPromise,
+    awsAccountsPromise,
+  ]);
+
+  return awsAccounts.filter((acc) => {
+    return memberships.some((mem) => acc.name.includes(mem.groupDisplayName));
+  });
 };
 
 export const describePermissionSetsInPrincipal = async (
@@ -786,6 +1039,7 @@ export const listGroups = async () => {
     if (!Groups || Groups.length === 0) break;
     nextToken = NextToken;
     groups.push(...Groups);
+    await sleep(500);
   }
 
   return groups.map((group) => ({
@@ -823,6 +1077,7 @@ export const listUsers = async () => {
     if (!Users || Users.length === 0) break;
     nextToken = NextToken;
     users.push(...Users);
+    await sleep(500);
   }
 
   return users.map((user) => ({
@@ -913,7 +1168,7 @@ export const listPermissionSetArnsInSet = async () => {
 
 export const getPsTagsInfo = (tags: Record<string, string>) => {
   let showOrHide: 'SHOW' | 'HIDE' = 'HIDE';
-  let showHideValue = 'ALL USERS';
+  let showHideValue = 'ALL GROUPS';
 
   if ('showTo' in tags) {
     showHideValue = tags['showTo'];
@@ -926,7 +1181,7 @@ export const getPsTagsInfo = (tags: Record<string, string>) => {
   }
 
   const isShow = showOrHide === 'SHOW';
-  const isAll = showHideValue === 'ALL USERS';
+  const isAll = showHideValue === 'ALL GROUPS';
 
   return {
     showOrHide,
@@ -961,7 +1216,7 @@ export const updatePermissionSet = async (data: UpdatePermissionSetData) => {
 
   if (tags) {
     const { isShow, isAll } = getPsTagsInfoPayload(tags);
-    console.table({ isShow, isAll });
+
     await ssoAdmin.send(
       new UntagResourceCommand({
         ResourceArn: arn,
@@ -977,7 +1232,7 @@ export const updatePermissionSet = async (data: UpdatePermissionSetData) => {
         Tags: [
           {
             Key: isShow ? 'showTo' : 'hideFrom',
-            Value: isAll ? 'ALL USERS' : tags.values,
+            Value: isAll ? 'ALL GROUPS' : tags.values,
           },
         ],
       })

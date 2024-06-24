@@ -37,9 +37,19 @@ export const listMyPermissionSetsService = async (userId: string) => {
   const groupAssignmentsPromise = memberships.map((membership) => {
     return listAccountAssignmentsforPrincipal(
       membership.groupId,
-      PrincipalType.GROUP
+      PrincipalType.GROUP,
+      true
     );
   });
+
+  // include my self
+  groupAssignmentsPromise.push(
+    listAccountAssignmentsforPrincipal(
+      user.principalUserId,
+      PrincipalType.USER,
+      true
+    )
+  );
 
   const awsAccountsMapPromise = listAccountsInMap();
   const permissionSetsMapPromise = describeAllPermissionSetsInMap();
@@ -55,10 +65,17 @@ export const listMyPermissionSetsService = async (userId: string) => {
       groupDetailsPromise,
     ]);
 
+  console.log('groupAssignments', groupAssignments);
+
   const permissionSetsInPrincipalMap: Record<
     string,
     Result[0]['permissionSets']
   > = {};
+
+  groupDetails.set(user.principalUserId, {
+    displayName: user.name,
+    id: user.principalUserId,
+  });
 
   for (const assignments of groupAssignments) {
     for (const assignment of assignments) {
@@ -89,7 +106,10 @@ export const listMyPermissionSetsService = async (userId: string) => {
     if (principal && awsAccount) {
       result.push({
         principalId,
-        principalType: PrincipalType.GROUP,
+        principalType:
+          principalId === user.principalUserId
+            ? PrincipalType.USER
+            : PrincipalType.GROUP,
         permissionSets: value,
         awsAccountId,
         awsAccountName: awsAccount.name,

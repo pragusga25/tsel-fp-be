@@ -1,0 +1,160 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table User {
+  id String [pk]
+  username String [unique, not null]
+  password String [not null]
+  name String [not null]
+  email String [unique]
+  role Role [not null, default: 'USER']
+  assignmentRequestRequesters AssignmentRequest [not null]
+  assignmentRequestResponders AssignmentRequest [not null]
+  principalUserId String [unique]
+  isApprover Boolean [not null, default: false]
+  isRoot Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  freezeTimes FreezeTime [not null]
+  assignmentUserRequestRequesters AssignmentUserRequest [not null]
+  assignmentUserRequestResponders AssignmentUserRequest [not null]
+  timeInHours TimeInHour [not null]
+}
+
+Table IdentityInstance {
+  id String [pk]
+  instanceArn String [not null]
+  identityStoreId String [not null]
+  schedulerTargetArn String
+  schedulerRoleArn String
+}
+
+Table AccountAssignment {
+  id String [pk]
+  permissionSetArns String[] [not null]
+  principalId String [not null]
+  principalType PrincipalType [not null, default: 'GROUP']
+  awsAccountId String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  lastPushedAt DateTime
+
+  indexes {
+    (principalId, awsAccountId, principalType) [unique]
+  }
+}
+
+Table AssignmentRequest {
+  id String [pk]
+  requester User [not null]
+  requesterId String [not null]
+  responder User
+  responderId String
+  requestedAt DateTime [default: `now()`, not null]
+  respondedAt DateTime
+  permissionSetArns String[] [not null]
+  status AssignmentRequestStatus [not null, default: 'PENDING']
+  operation AssignmentOperation [not null, default: 'ATTACH']
+  principalId String [not null]
+  principalType PrincipalType [not null, default: 'GROUP']
+  awsAccountId String [not null]
+  note String
+}
+
+Table AssignmentUserRequest {
+  id String [pk]
+  requester User [not null]
+  requesterId String [not null]
+  responder User
+  responderId String
+  requestedAt DateTime [default: `now()`, not null]
+  respondedAt DateTime
+  permissionSetArn String [not null]
+  status AssignmentRequestStatus [not null, default: 'PENDING']
+  principalId String [not null]
+  principalType PrincipalType [not null, default: 'USER']
+  awsAccountId String [not null]
+  endAt DateTime
+  timeInHour Int [not null]
+  isExecutedAtEnd Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table TimeInHour {
+  timeInHour Int [pk]
+  creatorId String [not null]
+  creator User [not null]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table FreezeTime {
+  id String [pk]
+  startTime DateTime [not null]
+  endTime DateTime [not null]
+  name String [unique, not null]
+  target FreezeTimeTarget [not null, default: 'ALL']
+  permissionSetArns String[] [not null]
+  creator User [not null]
+  creatorId String [not null]
+  excludedPrincipals Json[] [not null]
+  isExecutedAtStart Boolean [not null, default: false]
+  isExecutedAtEnd Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table Log {
+  id String [pk]
+  message String [not null]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table requester {
+  assignmentrequestrequestersId String [ref: > AssignmentRequest.id]
+  assignmentuserrequestrequestersId String [ref: > AssignmentUserRequest.id]
+}
+
+Table responder {
+  assignmentrequestrespondersId String [ref: > AssignmentRequest.id]
+  assignmentuserrequestrespondersId String [ref: > AssignmentUserRequest.id]
+}
+
+Enum FreezeTimeTarget {
+  USER
+  GROUP
+  ALL
+}
+
+Enum Role {
+  USER
+  ADMIN
+}
+
+Enum PrincipalType {
+  USER
+  GROUP
+}
+
+Enum AssignmentRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+Enum AssignmentOperation {
+  ATTACH
+  DETACH
+}
+
+Ref: AssignmentRequest.requesterId > User.id [delete: Cascade]
+
+Ref: AssignmentRequest.responderId > User.id [delete: Cascade]
+
+Ref: AssignmentUserRequest.requesterId > User.id [delete: Cascade]
+
+Ref: AssignmentUserRequest.responderId > User.id [delete: Cascade]
+
+Ref: TimeInHour.creatorId > User.id [delete: Cascade]
+
+Ref: FreezeTime.creatorId > User.id [delete: Cascade]

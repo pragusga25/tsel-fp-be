@@ -1,9 +1,12 @@
 import { listGroups, listUsersInGroups } from '../helper';
+import { ListGroupPrincipalsData } from '../validations';
 
-export const listGroupPrincipalsService = async () => {
+export const listGroupPrincipalsService = async ({
+  mode,
+}: ListGroupPrincipalsData) => {
   const [groups, groupMemberships] = await Promise.all([
     listGroups(),
-    listUsersInGroups(),
+    mode === 'withMemberships' ? listUsersInGroups() : null,
   ]);
 
   groups.sort((a, b) => {
@@ -16,7 +19,9 @@ export const listGroupPrincipalsService = async () => {
 
   return {
     result: groups.map((group) => {
-      const memberships = groupMemberships.get(group.id) || [];
+      const memberships = groupMemberships
+        ? groupMemberships.get(group.id) || []
+        : [];
       memberships.sort((a, b) => {
         if (a.userDisplayName && b.userDisplayName) {
           return a.userDisplayName.localeCompare(b.userDisplayName);

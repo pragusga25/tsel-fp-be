@@ -1,15 +1,12 @@
 import { config as c } from 'dotenv';
 import {
   object,
-  number,
-  integer,
-  minValue,
-  maxValue,
   parse,
   optional,
   string,
   minLength,
   picklist,
+  email,
 } from 'valibot';
 c();
 
@@ -27,6 +24,10 @@ const envVarsSchema = object({
     minLength(8, 'API key must be at least 8 characters long'),
   ]),
   CORS_ORIGINS: optional(string(), 'http://localhost:5173'),
+  AWS_SES_SENDER_EMAIL: string([email()]),
+  FE_REQUEST_PAGE_URL: string(),
+  SENDGRID_API_KEY: optional(string()),
+  SENDGRID_SENDER_EMAIL: optional(string()),
 });
 
 export const config = parse(envVarsSchema, process.env);

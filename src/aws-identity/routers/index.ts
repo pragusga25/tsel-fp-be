@@ -39,6 +39,16 @@ import { listGroupAssignmentsRouter } from './list-group-assignments.router';
 import { schedulerRollbackAssignmentsRouter } from './scheduler-rollback-assignments.router';
 import { schedulerFreezeAssignmentsRouter } from './scheduler-freeze-assignments.router';
 import { updatePermissionSetRouter } from './update-permission-set.router';
+import { getAssignmentUserRequestFormDataRouter } from './get-assignment-user-request-data-form';
+import { listTimeInHoursRouter } from './list-time-in-hours.router';
+import { deleteTimeInHourRouter } from './delete-time-in-hour.router';
+import { createTimeInHourRouter } from './create-time-in-hour.router';
+import { createAssignmentUserRequestRouter } from './create-assignment-user-request.router';
+import { listAssignmentUserRequestsRouter } from './list-assignment-user-requests.router';
+import { deleteAssignmentUserRequestRouter } from './delete-assignment-user-request.router';
+import { acceptAssignmentUserRequestRouter } from './accept-assignment-user-request.router';
+import { rejectAssignmentUserRequestRouter } from './reject-assignment-user-request.router';
+import { schedulerDetachAssignmentUserRequestRouter } from './scheduler-detach-assignment-user-request.router';
 
 export const awsIdentityRouters = [
   listGroupPrincipalsRouter,
@@ -82,4 +92,14 @@ export const awsIdentityRouters = [
   schedulerFreezeAssignmentsRouter,
   schedulerRollbackAssignmentsRouter,
   updatePermissionSetRouter,
+  getAssignmentUserRequestFormDataRouter,
+  listTimeInHoursRouter,
+  deleteTimeInHourRouter,
+  createTimeInHourRouter,
+  createAssignmentUserRequestRouter,
+  listAssignmentUserRequestsRouter,
+  deleteAssignmentUserRequestRouter,
+  acceptAssignmentUserRequestRouter,
+  rejectAssignmentUserRequestRouter,
+  schedulerDetachAssignmentUserRequestRouter,
 ];

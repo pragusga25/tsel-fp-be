@@ -13,6 +13,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
 model User {
   id       String  @id @default(cuid())
   username String  @unique
@@ -28,9 +32,12 @@ model User {
   isApprover      Boolean @default(false)
   isRoot          Boolean @default(false)
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  freezeTimes FreezeTime[]
+  createdAt                       DateTime                @default(now())
+  updatedAt                       DateTime                @updatedAt
+  freezeTimes                     FreezeTime[]
+  assignmentUserRequestRequesters AssignmentUserRequest[] @relation("requester")
+  assignmentUserRequestResponders AssignmentUserRequest[] @relation("responder")
+  timeInHours                     TimeInHour[]
 }
 
 model IdentityInstance {
@@ -76,6 +83,37 @@ model AssignmentRequest {
   awsAccountId  String
 
   note String?
+}
+
+model AssignmentUserRequest {
+  id          String @id @default(cuid())
+  requester   User   @relation("requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requesterId String
+
+  responder   User?   @relation("responder", fields: [responderId], references: [id], onDelete: Cascade)
+  responderId String?
+
+  requestedAt DateTime  @default(now())
+  respondedAt DateTime?
+
+  permissionSetArn String
+  status           AssignmentRequestStatus @default(PENDING)
+
+  principalId     String
+  principalType   PrincipalType @default(USER)
+  awsAccountId    String
+  endAt           DateTime?
+  timeInHour      Int
+  isExecutedAtEnd Boolean       @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model TimeInHour {
+  timeInHour Int      @id @unique
+  creatorId  String
+  creator    User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 }
 
 model FreezeTime {

@@ -103,3 +103,9 @@ export class SchedulerUnsetError extends HttpError {
     super(400, 'aws-identity/scheduler-unset', details);
   }
 }
+
+export class ConflictTimeInHourError extends HttpError {
+  constructor(details: string[] = []) {
+    super(409, 'aws-identity/conflict-time-in-hour', details);
+  }
+}

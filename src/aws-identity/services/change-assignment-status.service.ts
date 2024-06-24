@@ -8,8 +8,10 @@ import {
   describeAllPermissionSetsInMap,
   describeAwsAccount,
   describeGroup,
+  sendEmailToRequester,
 } from '../helper';
 import { createLog } from '../../__shared__/utils';
+import { Trx } from '../../__shared__/interfaces';
 
 type Data = {
   permissionSetArns: string[];
@@ -22,9 +24,9 @@ export const changeAssignmentStatusService = async (
   responderId: string,
   id: string,
   status: AssignmentRequestStatus,
-  cb?: (data: Data) => unknown
+  cb?: (data: Data, trx: Trx) => unknown
 ) => {
-  const res = await db.$transaction(async (trx) => {
+  await db.$transaction(async (trx) => {
     const currentData = await db.assignmentRequest.findUnique({
       where: {
         id,
@@ -80,12 +82,13 @@ export const changeAssignmentStatusService = async (
         requester: {
           select: {
             name: true,
+            email: true,
           },
         },
       },
     });
 
-    cb?.(res);
+    cb?.(res, trx);
 
     const permissionSetsName = res.permissionSetArns.map((ps) => {
       const detail = permissionSetsInMap.get(ps)?.name ?? ps;
@@ -96,7 +99,7 @@ export const changeAssignmentStatusService = async (
     const responderName = res.responder?.name ?? 'System';
     const requesterName = res.requester?.name ?? 'Unknown';
     const permissionSetsStr = permissionSetsName.join(', ');
-    const groupName = detailGroup.displayName;
+    const groupName = detailGroup.displayName ?? 'Unknown Group';
     const awsAccountName = awsAccount?.name ?? 'Unknown';
     const opsText = res.operation === 'ATTACH' ? 'pemberian' : 'penghapusan';
 
@@ -107,6 +110,16 @@ export const changeAssignmentStatusService = async (
     `;
 
     await createLog(logMessage, trx);
+
+    await sendEmailToRequester({
+      approverName: responderName,
+      groupName,
+      operation: res.operation,
+      permissionSetNames: permissionSetsName,
+      requesterEmail: res.requester.email ?? '',
+      requesterName,
+      status,
+    }).catch(console.error);
 
     return res;
   });
