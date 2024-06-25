@@ -333,6 +333,8 @@ export const createOneTimeSchedulev1 = async ({
 
 export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
   const { name, startTime, endTime } = data;
+  startTime.setHours(startTime.getHours() + 7);
+  endTime.setHours(endTime.getHours() + 7);
   const startTimeStr =
     getLocaleDateString(startTime, {
       format: 'yyyy-mm-ddThh:MM',

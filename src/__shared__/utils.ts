@@ -115,6 +115,7 @@ export const getLocaleDateString = (
   }>
 ) => {
   let theDate = date;
+
   if (opts?.addDay) {
     theDate = new Date(date.getTime() + opts.addDay * 24 * 60 * 60 * 1000);
   }
