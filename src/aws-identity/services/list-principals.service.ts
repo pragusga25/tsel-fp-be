@@ -1,7 +1,9 @@
+import { db } from '../../db';
 import { listPrincipals } from '../helper';
 
 export const listPrincipalsService = async () => {
-  const result = await listPrincipals();
+  const identity = await db.identityInstance.findFirst();
+  const result = await listPrincipals(identity?.identityStoreId);
 
   result.sort((a, b) => {
     if (a.displayName && b.displayName) {

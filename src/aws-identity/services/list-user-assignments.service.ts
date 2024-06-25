@@ -16,9 +16,13 @@ export const listUserAssignmentsService = async () => {
   if (accountAssignments.length === 0) {
     return { result: [] };
   }
+  const identity = await db.identityInstance.findFirst();
+
   const awsAccountsPromise = listAccountsInMap();
-  const usersPromise = listUsersInMap();
-  const permissionSetsPromise = describeAllPermissionSetsInMap();
+  const usersPromise = listUsersInMap(identity?.identityStoreId);
+  const permissionSetsPromise = describeAllPermissionSetsInMap(
+    identity?.instanceArn
+  );
 
   const [awsAccountsMap, usersMap, permissionSetsMap] = await Promise.all([
     awsAccountsPromise,

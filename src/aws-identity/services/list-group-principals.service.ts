@@ -1,12 +1,16 @@
+import { db } from '../../db';
 import { listGroups, listUsersInGroups } from '../helper';
 import { ListGroupPrincipalsData } from '../validations';
 
 export const listGroupPrincipalsService = async ({
   mode,
 }: ListGroupPrincipalsData) => {
+  const identity = await db.identityInstance.findFirst();
   const [groups, groupMemberships] = await Promise.all([
-    listGroups(),
-    mode === 'withMemberships' ? listUsersInGroups() : null,
+    listGroups(identity?.identityStoreId),
+    mode === 'withMemberships'
+      ? listUsersInGroups(identity?.identityStoreId)
+      : null,
   ]);
 
   groups.sort((a, b) => {

@@ -397,18 +397,20 @@ export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
   );
 };
 
-export const getUserMemberships = async (principalUserId: string) => {
-  const [{ identityStoreId }, groupsInMap] = await Promise.all([
-    getIdentityInstanceOrThrow(),
-    listGroupsInMap(),
-  ]);
+export const getUserMemberships = async (
+  principalUserId: string,
+  identityStoreId?: string | null
+) => {
+  const theIdentityStoreId =
+    identityStoreId ?? (await getIdentityInstanceOrThrow()).identityStoreId;
+  const [groupsInMap] = await Promise.all([listGroupsInMap()]);
 
   const { GroupMemberships } = await identityStore.send(
     new ListGroupMembershipsForMemberCommand({
       MemberId: {
         UserId: principalUserId,
       },
-      IdentityStoreId: identityStoreId,
+      IdentityStoreId: theIdentityStoreId,
     })
   );
 
@@ -439,8 +441,8 @@ export const getUserMemberships = async (principalUserId: string) => {
   return memberships;
 };
 
-export const listGroupsInUsers = async () => {
-  const [groupsInMap] = await Promise.all([listGroupsInMap()]);
+export const listGroupsInUsers = async (identityStoreId?: string | null) => {
+  const [groupsInMap] = await Promise.all([listGroupsInMap(identityStoreId)]);
 
   const groups = Array.from(groupsInMap.values());
 
@@ -495,10 +497,10 @@ export const listGroupsInUsers = async () => {
   return usersGroupsMap;
 };
 
-export const listUsersInGroups = async () => {
+export const listUsersInGroups = async (identityStoreId?: string | null) => {
   const [groupsInMap, usersInMap] = await Promise.all([
-    listGroupsInMap(),
-    listUsersInMap(),
+    listGroupsInMap(identityStoreId),
+    listUsersInMap(identityStoreId),
   ]);
 
   const groups = Array.from(groupsInMap.values());
@@ -1104,13 +1106,19 @@ export const listUsers = async (identityStoreId?: string | null) => {
   }));
 };
 
-export const listPrincipals = async () => {
-  const [groups, users] = await Promise.all([listGroups(), listUsers()]);
+export const listPrincipals = async (identityStoreId?: string | null) => {
+  const [groups, users] = await Promise.all([
+    listGroups(identityStoreId),
+    listUsers(identityStoreId),
+  ]);
   return [...groups, ...users];
 };
 
-export const listPrincipalsInMap = async () => {
-  const [groups, users] = await Promise.all([listGroups(), listUsers()]);
+export const listPrincipalsInMap = async (identityStoreId?: string | null) => {
+  const [groups, users] = await Promise.all([
+    listGroups(identityStoreId),
+    listUsers(identityStoreId),
+  ]);
   const principals = [...groups, ...users];
   const map = new Map<string, ReturnedPrincipal>();
 
@@ -1121,8 +1129,8 @@ export const listPrincipalsInMap = async () => {
   return map;
 };
 
-export const listGroupsInMap = async () => {
-  const groups = await listGroups();
+export const listGroupsInMap = async (identityStoreId?: string | null) => {
+  const groups = await listGroups(identityStoreId);
   const map = new Map<string, Awaited<ReturnType<typeof listGroups>>[0]>();
   groups.forEach((group) => {
     map.set(group.id, group);
@@ -1130,8 +1138,8 @@ export const listGroupsInMap = async () => {
   return map;
 };
 
-export const listUsersInMap = async () => {
-  const users = await listUsers();
+export const listUsersInMap = async (identityStoreId?: string | null) => {
+  const users = await listUsers(identityStoreId);
   const map = new Map<string, Awaited<ReturnType<typeof listUsers>>[0]>();
   users.forEach((user) => {
     map.set(user.id, user);
@@ -1254,15 +1262,18 @@ export const updatePermissionSet = async (data: UpdatePermissionSetData) => {
 
 export const describePermissionSet = async (
   permissionSetArn: string,
-  withTags = false
+  withTags = false,
+  instanceArn?: string | null
 ) => {
-  const { instanceArn } = await getIdentityInstanceOrThrow();
+  // const { instanceArn } = await getIdentityInstanceOrThrow();
+  const theInstanceArn =
+    instanceArn ?? (await getIdentityInstanceOrThrow()).instanceArn;
 
   let tags: Record<string, string> = {};
 
   const { PermissionSet } = await ssoAdmin.send(
     new DescribePermissionSetCommand({
-      InstanceArn: instanceArn,
+      InstanceArn: theInstanceArn,
       PermissionSetArn: permissionSetArn,
     })
   );
@@ -1273,7 +1284,7 @@ export const describePermissionSet = async (
     const { Tags } = await ssoAdmin.send(
       new ListTagsForResourceCommand({
         ResourceArn: permissionSetArn,
-        InstanceArn: instanceArn,
+        InstanceArn: theInstanceArn,
       })
     );
 
@@ -1308,11 +1319,13 @@ export const describeAllPermissionSets = async (withTags = false) => {
   return Promise.all(describePermissionSetsPromises);
 };
 
-export const describeAllPermissionSetsInMap = async () => {
-  const permissionSets = await listPermissionSets();
+export const describeAllPermissionSetsInMap = async (
+  instanceArn?: string | null
+) => {
+  const permissionSets = await listPermissionSets(instanceArn);
 
   const describePermissionSetsPromises = permissionSets.map((permissionSet) =>
-    describePermissionSet(permissionSet)
+    describePermissionSet(permissionSet, false, instanceArn)
   );
 
   const permissionSetsDetail = await Promise.all(
@@ -1535,13 +1548,18 @@ export const describeAwsAccount = async (awsAccountId: string) => {
   };
 };
 
-export const describeGroup = async (groupId: string) => {
-  const { identityStoreId } = await getIdentityInstanceOrThrow();
+export const describeGroup = async (
+  groupId: string,
+  identityStoreId?: string | null
+) => {
+  // const { identityStoreId } = await getIdentityInstanceOrThrow();
+  const theIdentityStoreId =
+    identityStoreId ?? (await getIdentityInstanceOrThrow()).identityStoreId;
 
   const { GroupId, DisplayName } = await identityStore.send(
     new DescribeGroupCommand({
       GroupId: groupId,
-      IdentityStoreId: identityStoreId,
+      IdentityStoreId: theIdentityStoreId,
     })
   );
 
@@ -1552,14 +1570,18 @@ export const describeGroup = async (groupId: string) => {
   };
 };
 
-export const describeGroupsInMap = async (groupIds: string[]) => {
-  const { identityStoreId } = await getIdentityInstanceOrThrow();
+export const describeGroupsInMap = async (
+  groupIds: string[],
+  identityStoreId?: string | null
+) => {
+  const theIdentityStoreId =
+    identityStoreId ?? (await getIdentityInstanceOrThrow()).identityStoreId;
 
   const describePromises = groupIds.map((groupId) => {
     return identityStore.send(
       new DescribeGroupCommand({
         GroupId: groupId,
-        IdentityStoreId: identityStoreId,
+        IdentityStoreId: theIdentityStoreId,
       })
     );
   });
@@ -1579,14 +1601,19 @@ export const describeGroupsInMap = async (groupIds: string[]) => {
   return result;
 };
 
-export const describeUser = async (userId: string) => {
-  const { identityStoreId } = await getIdentityInstanceOrThrow();
+export const describeUser = async (
+  userId: string,
+  identityStoreId?: string | null
+) => {
+  // const { identityStoreId } = await getIdentityInstanceOrThrow();
+  const theIdentityStoreId =
+    identityStoreId ?? (await getIdentityInstanceOrThrow()).identityStoreId;
 
   const { UserId, DisplayName, Emails, Name, UserName } =
     await identityStore.send(
       new DescribeUserCommand({
         UserId: userId,
-        IdentityStoreId: identityStoreId,
+        IdentityStoreId: theIdentityStoreId,
       })
     );
 
@@ -1876,11 +1903,13 @@ export const getAwsAccountsAndPrincipalsMap = async () => {
   return { awsAccountsMap, principalsMap };
 };
 
-export const getAwsAccountsPrincipalsPermissionSetsMap = async () => {
+export const getAwsAccountsPrincipalsPermissionSetsMap = async (
+  opts?: { identityStoreId?: string | null; instanceArn?: string | null } | null
+) => {
   const [awsAccountsMap, principalsMap, permissionSetsMap] = await Promise.all([
     listAccountsInMap(),
-    listPrincipalsInMap(),
-    describeAllPermissionSetsInMap(),
+    listPrincipalsInMap(opts?.identityStoreId),
+    describeAllPermissionSetsInMap(opts?.instanceArn),
   ]);
 
   return { awsAccountsMap, principalsMap, permissionSetsMap };

@@ -26,9 +26,11 @@ export const listFreezeTimesService = async () => {
     return { result: [] };
   }
 
+  const identity = await db.identityInstance.findFirst();
+
   const [permissionSetsMap, principals] = await Promise.all([
-    describeAllPermissionSetsInMap(),
-    listPrincipalsInMap(),
+    describeAllPermissionSetsInMap(identity?.instanceArn),
+    listPrincipalsInMap(identity?.identityStoreId),
   ]);
 
   let result = freezes.map(

@@ -1,9 +1,11 @@
+import { db } from '../../db';
 import { listGroupsInUsers, listUsers } from '../helper';
 
 export const listUserPrincipalsService = async () => {
+  const identity = await db.identityInstance.findFirst();
   const [users, userMemberships] = await Promise.all([
-    listUsers(),
-    listGroupsInUsers(),
+    listUsers(identity?.identityStoreId),
+    listGroupsInUsers(identity?.identityStoreId),
   ]);
 
   users.sort((a, b) => {

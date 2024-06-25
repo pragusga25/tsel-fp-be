@@ -56,9 +56,12 @@ export const listMyPermissionSetsService = async (userId: string) => {
   );
 
   const awsAccountsMapPromise = listAccountsInMap();
-  const permissionSetsMapPromise = describeAllPermissionSetsInMap();
+  const permissionSetsMapPromise = describeAllPermissionSetsInMap(
+    identityInstance?.instanceArn
+  );
   const groupDetailsPromise = describeGroupsInMap(
-    memberships.map((membership) => membership.groupId)
+    memberships.map((membership) => membership.groupId),
+    identityInstance?.identityStoreId
   );
 
   const [groupAssignments, awsAccountsMap, permissionSetsMap, groupDetails] =

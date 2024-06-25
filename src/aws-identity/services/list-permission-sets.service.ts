@@ -20,8 +20,13 @@ export const listPermissionSetsService = async (currentUser: IJwtPayload) => {
       },
     });
 
+    const identity = await db.identityInstance.findFirst();
+
     const memberships = user.principalUserId
-      ? await getUserMemberships(user.principalUserId)
+      ? await getUserMemberships(
+          user.principalUserId,
+          identity?.identityStoreId
+        )
       : [];
 
     const groupNames = memberships.map(

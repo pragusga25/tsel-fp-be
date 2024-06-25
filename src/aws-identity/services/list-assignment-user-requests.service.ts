@@ -29,7 +29,9 @@ export const listAssignmentUserRequestsService = async (
     },
   });
 
-  const pss = await describeAllPermissionSetsInMap();
+  const identity = await db.identityInstance.findFirst();
+
+  const pss = await describeAllPermissionSetsInMap(identity?.instanceArn);
   const awsAcc = await listAccountsInMap();
 
   const result = data.map(

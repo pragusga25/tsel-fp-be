@@ -2,7 +2,8 @@ import { db } from '../../db';
 import { listPrincipals } from '../helper';
 
 export const listPrincipalsNotInDbService = async () => {
-  const principalsFromAwsPromise = listPrincipals();
+  const identity = await db.identityInstance.findFirst();
+  const principalsFromAwsPromise = listPrincipals(identity?.identityStoreId);
   const principalsFromDbPromise = db.accountAssignment.findMany({
     select: {
       principalId: true,

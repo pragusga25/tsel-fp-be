@@ -33,8 +33,10 @@ export const listMyAssignmentRequestsService = async (userId: string) => {
     return { result: [] };
   }
 
+  const identity = await db.identityInstance.findFirst();
+
   const { awsAccountsMap, principalsMap, permissionSetsMap } =
-    await getAwsAccountsPrincipalsPermissionSetsMap();
+    await getAwsAccountsPrincipalsPermissionSetsMap(identity);
 
   let result = assgReqs.map(({ permissionSetArns, ...rest }) => {
     const { awsAccountId, principalId } = rest;
