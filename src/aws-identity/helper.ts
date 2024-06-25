@@ -68,7 +68,7 @@ import {
   CreateScheduleCommand,
   DeleteScheduleCommand,
 } from '@aws-sdk/client-scheduler';
-import { getLocaleDateString, sleep } from '../__shared__/utils';
+import { getLocaleDateString, sleep, toJakartaTime } from '../__shared__/utils';
 import { SchedulerAction } from './types';
 import { sendEmail } from '../__shared__/mailer';
 
@@ -333,8 +333,7 @@ export const createOneTimeSchedulev1 = async ({
 
 export const createOneTimeSchedule = async (data: CreateOneTimeSchedule) => {
   const { name, startTime, endTime } = data;
-  startTime.setHours(startTime.getHours() + 7);
-  endTime.setHours(endTime.getHours() + 7);
+
   const startTimeStr =
     getLocaleDateString(startTime, {
       format: 'yyyy-mm-ddThh:MM',
@@ -640,8 +639,6 @@ export const listAccountAssignmentsforPrincipal = async (
       MaxResults: 99,
     })
   );
-
-  console.log('AccountAssignments: ', AccountAssignments);
 
   if (!AccountAssignments || AccountAssignments.length === 0) return [];
 

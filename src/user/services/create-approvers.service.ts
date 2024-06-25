@@ -44,8 +44,6 @@ export const createApproversService = async (
     (principalUser) => !alreadyApproversUsernamesSet.has(principalUser.username)
   );
 
-  console.log(filteredPrincipalUsers);
-
   const usersInDbUsernameSet = new Set(usersInDb.map((user) => user.username));
 
   const filteredPrincipalUsersInDb: typeof filteredPrincipalUsers = [];

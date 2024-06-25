@@ -72,6 +72,22 @@ export class HttpUtil {
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+export const toJakartaTime = (date: Date) => {
+  // suppose the date is 12:00 UTC
+  const invdate = new Date(
+    date.toLocaleString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+    })
+  );
+
+  // then invdate will be 07:00 in Toronto
+  // and the diff is 5 hours
+  const diff = date.getTime() - invdate.getTime();
+
+  // so 12:00 in Toronto is 17:00 UTC
+  return new Date(date.getTime() - diff); // needs to substract
+};
+
 export const formatDateId = (timestamp: string | Date, withTimes = true) => {
   const months = [
     'Januari',
@@ -124,7 +140,11 @@ export const getLocaleDateString = (
     theDate = new Date(date.getTime() + opts.addHours * 60 * 60 * 1000);
   }
 
-  let [monthStr, dateStr, yearStr] = theDate.toLocaleDateString().split('/');
+  let [dateStr, monthStr, yearStr] = theDate
+    .toLocaleDateString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+    })
+    .split('/');
 
   dateStr = dateStr.padStart(2, '0');
   monthStr = monthStr.padStart(2, '0');
@@ -138,10 +158,18 @@ export const getLocaleDateString = (
   }
 
   if (opts?.format === 'yyyy-mm-ddThh:MM') {
-    return `${yearStr}-${monthStr}-${dateStr}T${theDate
-      .getHours()
-      .toString()
-      .padStart(2, '0')}:${theDate.getMinutes().toString().padStart(2, '0')}`;
+    const [hoursStr, minutesStr] = theDate
+      .toLocaleTimeString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+      })
+      .split('.');
+
+    return `${yearStr}-${monthStr}-${dateStr}T${hoursStr}:${minutesStr}`;
+
+    // return `${yearStr}-${monthStr}-${dateStr}T${theDate
+    //   .getHours()
+    //   .toString()
+    //   .padStart(2, '0')}:${theDate.getMinutes().toString().padStart(2, '0')}`;
   }
 
   return `${dateStr}-${monthStr}-${yearStr}`;

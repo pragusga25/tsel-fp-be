@@ -9,7 +9,7 @@ listApproversRouter.get(
   adminOnlyMiddleware,
   async (_req: IAuthRequest, res) => {
     const result = await listApproversService();
-    console.log(result);
+
     res.status(200).send({
       ok: true,
       ...result,

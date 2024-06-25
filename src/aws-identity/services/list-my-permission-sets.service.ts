@@ -65,8 +65,6 @@ export const listMyPermissionSetsService = async (userId: string) => {
       groupDetailsPromise,
     ]);
 
-  console.log('groupAssignments', groupAssignments);
-
   const permissionSetsInPrincipalMap: Record<
     string,
     Result[0]['permissionSets']

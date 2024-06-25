@@ -15,7 +15,7 @@ listLogsRouter.get(
   validationQueryMiddleware(ListLogsSchema),
   async (req: IAuthRequest, res) => {
     const query = req.query as unknown as ListLogsData;
-    console.log(query);
+
     const result = await listLogsService(query);
     res.status(200).send({
       ok: true,
