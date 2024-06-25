@@ -159,30 +159,35 @@ export const CreateFreezeTimeSchema = transform(
       ]),
       target: picklist(Object.values(FreezeTimeTarget), 'Invalid target.'),
       permissionSetArns: PermissionSetArnsRequiredSchema,
-      startTime: string(
-        'Please enter a valid start time in the format yyyy-MM-dd HH:mm.',
-        [
-          regex(
-            /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (2[0-3]|[01][0-9]):[0-5][0-9]$/,
-            'Please enter a valid start time in the format yyyy-MM-dd HH:mm.'
-          ),
-        ]
-      ),
-      endTime: string(
-        'Please enter a valid end time in the format yyyy-MM-dd HH:mm.',
-        [
-          regex(
-            /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (2[0-3]|[01][0-9]):[0-5][0-9]$/,
-            'Please enter a valid end time in the format yyyy-MM-dd HH:mm.'
-          ),
-        ]
-      ),
+      startTime: number('Start time must be a number', [
+        minValue(1, 'Start time must be greater than 0.'),
+      ]),
+      // startTime: string(
+      //   'Please enter a valid start time in the format yyyy-MM-dd HH:mm.',
+      //   [
+      //     regex(
+      //       /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (2[0-3]|[01][0-9]):[0-5][0-9]$/,
+      //       'Please enter a valid start time in the format yyyy-MM-dd HH:mm.'
+      //     ),
+      //   ]
+      // ),
+      endTime: number('End time must be a number', [
+        minValue(1, 'End time must be greater than 0.'),
+      ]),
+      // endTime: string(
+      //   'Please enter a valid end time in the format yyyy-MM-dd HH:mm.',
+      //   [
+      //     regex(
+      //       /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (2[0-3]|[01][0-9]):[0-5][0-9]$/,
+      //       'Please enter a valid end time in the format yyyy-MM-dd HH:mm.'
+      //     ),
+      //   ]
+      // ),
     },
     [
       forward(
         custom(
-          ({ startTime, endTime }) =>
-            new Date(startTime).getTime() < new Date(endTime).getTime(),
+          ({ startTime, endTime }) => startTime < endTime,
           'End time must be greater than start date'
         ),
         ['endTime']
@@ -190,7 +195,7 @@ export const CreateFreezeTimeSchema = transform(
       forward(
         custom(
           ({ startTime }) =>
-            new Date(startTime).getTime() >= new Date().getTime(),
+            new Date(startTime * 1000).getTime() >= new Date().getTime(),
           `Start time must be greater or equal to current time`
         ),
         ['startTime']
@@ -199,8 +204,8 @@ export const CreateFreezeTimeSchema = transform(
   ),
   ({ startTime, endTime, ...input }) => ({
     ...input,
-    startTime: new Date(startTime),
-    endTime: new Date(endTime),
+    startTime: new Date(startTime * 1000),
+    endTime: new Date(endTime * 1000),
   })
 );
 
