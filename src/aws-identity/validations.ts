@@ -156,6 +156,10 @@ export const CreateFreezeTimeSchema = transform(
       name: string('Please enter name', [
         minLength(5, 'Name must be at least 5 characters.'),
         maxLength(32, 'Name maximum is 32 characters.'),
+        regex(
+          /[0-9a-zA-Z-_.]+/,
+          'Name must be alphanumeric and can contain - or _ or .'
+        ),
       ]),
       target: picklist(Object.values(FreezeTimeTarget), 'Invalid target.'),
       permissionSetArns: PermissionSetArnsRequiredSchema,

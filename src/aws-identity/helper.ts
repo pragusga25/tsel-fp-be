@@ -623,17 +623,18 @@ export const getIdentityInstanceOrThrow = async () => {
 export const listAccountAssignmentsforPrincipal = async (
   principalId: string,
   principalType: PrincipalType = PrincipalType.GROUP,
-  strict = false
+  strict = false,
+  instanceArn?: string | null
 ) => {
-  const identityInstance = await getIdentityInstanceOrThrow();
-
   const accountAssignments: AccountAssignmentForPrincipal[] = [];
 
-  const { instanceArn } = identityInstance;
+  // const { instanceArn } = identityInstance;
+  const theInstanceArn =
+    instanceArn ?? (await getIdentityInstanceOrThrow()).instanceArn;
 
   const { AccountAssignments, NextToken } = await ssoAdmin.send(
     new ListAccountAssignmentsForPrincipalCommand({
-      InstanceArn: instanceArn,
+      InstanceArn: theInstanceArn,
       PrincipalId: principalId,
       PrincipalType: principalType,
       MaxResults: 99,
@@ -650,7 +651,7 @@ export const listAccountAssignmentsforPrincipal = async (
   while (nextToken) {
     const { AccountAssignments, NextToken } = await ssoAdmin.send(
       new ListAccountAssignmentsForPrincipalCommand({
-        InstanceArn: instanceArn,
+        InstanceArn: theInstanceArn,
         PrincipalId: principalId,
         PrincipalType: principalType,
         NextToken: nextToken,
@@ -699,11 +700,14 @@ export const getAllowedAwsAccounts = async (principalUserId: string) => {
 
 export const describePermissionSetsInPrincipal = async (
   principalId: string,
-  principalType: PrincipalType = PrincipalType.GROUP
+  principalType: PrincipalType = PrincipalType.GROUP,
+  instanceArn?: string | null
 ) => {
   const accountAssignments = await listAccountAssignmentsforPrincipal(
     principalId,
-    principalType
+    principalType,
+    false,
+    instanceArn
   );
   const accountAssignmentsFiltered = accountAssignments.filter(
     (assg) =>
@@ -731,7 +735,8 @@ export const describeDetailPrincipalAwsAccounts = async (
     principalType: PrincipalType;
     awsAccountId: string;
     id: string;
-  }[]
+  }[],
+  instanceArn?: string | null
 ) => {
   const principalsUnique = [
     ...new Set(data.map((p) => `${p.principalId}#${p.principalType}`)),
@@ -745,7 +750,9 @@ export const describeDetailPrincipalAwsAccounts = async (
     const [principalId, principalType] = principal.split('#');
     return listAccountAssignmentsforPrincipal(
       principalId,
-      principalType as PrincipalType
+      principalType as PrincipalType,
+      false,
+      instanceArn
     );
   });
 
@@ -1132,12 +1139,14 @@ export const listUsersInMap = async () => {
   return map;
 };
 
-export const listPermissionSets = async () => {
-  const { instanceArn } = await getIdentityInstanceOrThrow();
+export const listPermissionSets = async (instanceArn?: string | null) => {
+  // const { instanceArn } = await getIdentityInstanceOrThrow();
+  const theInstanceArn =
+    instanceArn ?? (await getIdentityInstanceOrThrow()).instanceArn;
 
   const { PermissionSets, NextToken } = await ssoAdmin.send(
     new ListPermissionSetsCommand({
-      InstanceArn: instanceArn,
+      InstanceArn: theInstanceArn,
     })
   );
 
@@ -1150,7 +1159,7 @@ export const listPermissionSets = async () => {
   while (nextToken) {
     const { PermissionSets, NextToken } = await ssoAdmin.send(
       new ListPermissionSetsCommand({
-        InstanceArn: instanceArn,
+        InstanceArn: theInstanceArn,
         NextToken: nextToken,
       })
     );
@@ -1162,8 +1171,10 @@ export const listPermissionSets = async () => {
   return permissionSets;
 };
 
-export const listPermissionSetArnsInSet = async () => {
-  const permissionSetArns = await listPermissionSets();
+export const listPermissionSetArnsInSet = async (
+  instanceArn?: string | null
+) => {
+  const permissionSetArns = await listPermissionSets(instanceArn);
   return new Set(permissionSetArns);
 };
 
@@ -1337,11 +1348,14 @@ type Data = {
 
 export const detachAllPermissionSetsFromPrincipal = async (
   principalId: string,
-  principalType: PrincipalType
+  principalType: PrincipalType,
+  instanceArn?: string | null
 ) => {
   const accountAssignments = await listAccountAssignmentsforPrincipal(
     principalId,
-    principalType
+    principalType,
+    false,
+    instanceArn
   );
 
   const detachPromises = accountAssignments.map((assg) => {
@@ -1357,10 +1371,13 @@ export const detachAllPermissionSetsFromPrincipal = async (
 };
 
 export const listAccountAssignmentsv2 = async (
-  type: PrincipalType = PrincipalType.GROUP
+  type: PrincipalType = PrincipalType.GROUP,
+  opts?: { identityStoreId?: string | null; instanceArn?: string | null } | null
 ) => {
   const principalsPromise =
-    type === PrincipalType.GROUP ? listGroups() : listUsers();
+    type === PrincipalType.GROUP
+      ? listGroups(opts?.identityStoreId)
+      : listUsers(opts?.identityStoreId);
 
   const awsAccountsPromise = listAccountsInMap();
 
@@ -1379,7 +1396,12 @@ export const listAccountAssignmentsv2 = async (
   });
 
   const accountAssignmentsPromises = principals.map((principal) =>
-    listAccountAssignmentsforPrincipal(principal.id, principal.principalType)
+    listAccountAssignmentsforPrincipal(
+      principal.id,
+      principal.principalType,
+      false,
+      opts?.instanceArn
+    )
   );
 
   const accountAssignments = await Promise.all(accountAssignmentsPromises);

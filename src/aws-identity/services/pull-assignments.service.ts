@@ -1,3 +1,4 @@
+import { PrincipalType } from '@prisma/client';
 import { db } from '../../db';
 import { PullFailedError } from '../errors';
 import { listAccountAssignmentsv2 } from '../helper';
@@ -27,7 +28,12 @@ export const pullAssignmentsService = async ({ force }: PullAssignmentData) => {
     }
   }
 
-  const awsSccountAssignments = await listAccountAssignmentsv2();
+  const identity = await db.identityInstance.findFirst();
+
+  const awsSccountAssignments = await listAccountAssignmentsv2(
+    PrincipalType.GROUP,
+    identity
+  );
 
   // await db.accountAssignment.deleteMany();
   // await db.accountAssignment.createMany({

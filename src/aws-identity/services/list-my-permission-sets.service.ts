@@ -32,13 +32,16 @@ export const listMyPermissionSetsService = async (userId: string) => {
     throw new UserNotFoundError();
   }
 
+  const identityInstance = await db.identityInstance.findFirst();
+
   const memberships = await getUserMemberships(user.principalUserId);
 
   const groupAssignmentsPromise = memberships.map((membership) => {
     return listAccountAssignmentsforPrincipal(
       membership.groupId,
       PrincipalType.GROUP,
-      true
+      true,
+      identityInstance?.instanceArn
     );
   });
 
@@ -47,7 +50,8 @@ export const listMyPermissionSetsService = async (userId: string) => {
     listAccountAssignmentsforPrincipal(
       user.principalUserId,
       PrincipalType.USER,
-      true
+      true,
+      identityInstance?.instanceArn
     )
   );
 

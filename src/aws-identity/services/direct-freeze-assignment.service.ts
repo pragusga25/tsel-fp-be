@@ -1,4 +1,4 @@
-import { FreezeTimeTarget } from '@prisma/client';
+import { FreezeTimeTarget, PrincipalType } from '@prisma/client';
 import {
   AccountAssignmentInAWSNotFoundError,
   OperationFailedError,
@@ -24,13 +24,16 @@ export const directFreezeAssignmentsService = async (
     ]);
   }
 
-  let awsAssignmentsPromise = await listAccountAssignmentsv2();
+  const identity = await db.identityInstance.findFirst();
+
+  let awsAssignmentsPromise = await listAccountAssignmentsv2(
+    PrincipalType.GROUP,
+    identity
+  );
 
   if (awsAssignmentsPromise.length === 0) {
     throw new AccountAssignmentInAWSNotFoundError();
   }
-
-  const identity = await db.identityInstance.findFirst();
 
   let {
     target,
@@ -38,7 +41,9 @@ export const directFreezeAssignmentsService = async (
     excludedPrincipals,
   } = data;
 
-  const awsPermissionSetArns = await listPermissionSetArnsInSet();
+  const awsPermissionSetArns = await listPermissionSetArnsInSet(
+    identity?.instanceArn
+  );
   permissionSetArnsFreeze = permissionSetArnsFreeze.filter((permissionSetArn) =>
     awsPermissionSetArns.has(permissionSetArn)
   );

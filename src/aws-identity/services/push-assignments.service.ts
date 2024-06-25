@@ -1,3 +1,4 @@
+import { PrincipalType } from '@prisma/client';
 import { sleep } from '../../__shared__/utils';
 import { db } from '../../db';
 import { OperationFailedError } from '../errors';
@@ -20,7 +21,10 @@ export const pushAssignmentsService = async () => {
 
   const identity = await db.identityInstance.findFirst();
 
-  const awsAssignments = await listAccountAssignmentsv2();
+  const awsAssignments = await listAccountAssignmentsv2(
+    PrincipalType.GROUP,
+    identity
+  );
 
   const dbKeys = dbAssignments.map(({ principalId, awsAccountId }) => {
     const key = `${principalId}#${awsAccountId}`;
