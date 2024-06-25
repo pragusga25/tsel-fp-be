@@ -15,6 +15,7 @@ const freeze = async (event) => {
   const res = await fetch(FREEZE_URL, {
     method: 'POST',
     headers,
+    body: JSON.stringify({ name: event['name'] }),
   });
 
   const json = await res.json();
@@ -26,6 +27,7 @@ const rollback = async (event) => {
   const res = await fetch(ROLLBACK_URL, {
     method: 'POST',
     headers,
+    body: JSON.stringify({ name: event['name'] }),
   });
 
   const json = await res.json();

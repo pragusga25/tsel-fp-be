@@ -18,6 +18,8 @@ export const pushOneAssignmentService = async ({
     throw new AccountAssignmentNotFoundError();
   }
 
+  const identity = await db.identityInstance.findFirst();
+
   const {
     principalId,
     principalType,
@@ -43,21 +45,27 @@ export const pushOneAssignmentService = async ({
   );
 
   const addPromises = permissionSetsToAdd.map((ps) =>
-    createAccountAssignment({
-      principalId,
-      principalType,
-      permissionSetArn: ps,
-      awsAccountId,
-    })
+    createAccountAssignment(
+      {
+        principalId,
+        principalType,
+        permissionSetArn: ps,
+        awsAccountId,
+      },
+      identity?.instanceArn
+    )
   );
 
   const removePromises = permissionSetsToRemove.map((ps) =>
-    deleteAccountAssignment({
-      permissionSetArn: ps,
-      principalId,
-      principalType,
-      awsAccountId,
-    })
+    deleteAccountAssignment(
+      {
+        permissionSetArn: ps,
+        principalId,
+        principalType,
+        awsAccountId,
+      },
+      identity?.instanceArn
+    )
   );
 
   await Promise.all([...addPromises, ...removePromises]);

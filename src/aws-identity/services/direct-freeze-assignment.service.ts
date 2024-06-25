@@ -30,6 +30,8 @@ export const directFreezeAssignmentsService = async (
     throw new AccountAssignmentInAWSNotFoundError();
   }
 
+  const identity = await db.identityInstance.findFirst();
+
   let {
     target,
     permissionSetArns: permissionSetArnsFreeze,
@@ -77,12 +79,15 @@ export const directFreezeAssignmentsService = async (
         continue;
       }
 
-      await deleteAccountAssignment({
-        principalId: awsAssignment.principalId,
-        principalType: awsAssignment.principalType,
-        permissionSetArn: permissionSetArn,
-        awsAccountId: awsAssignment.awsAccountId!,
-      });
+      await deleteAccountAssignment(
+        {
+          principalId: awsAssignment.principalId,
+          principalType: awsAssignment.principalType,
+          permissionSetArn: permissionSetArn,
+          awsAccountId: awsAssignment.awsAccountId!,
+        },
+        identity?.instanceArn
+      );
 
       await sleep(300);
     }
@@ -94,12 +99,15 @@ export const directFreezeAssignmentsService = async (
         continue;
       }
 
-      await createAccountAssignment({
-        principalId: awsAssignment.principalId,
-        principalType: awsAssignment.principalType,
-        permissionSetArn: permissionSetArnFreeze,
-        awsAccountId: awsAssignment.awsAccountId!,
-      });
+      await createAccountAssignment(
+        {
+          principalId: awsAssignment.principalId,
+          principalType: awsAssignment.principalType,
+          permissionSetArn: permissionSetArnFreeze,
+          awsAccountId: awsAssignment.awsAccountId!,
+        },
+        identity?.instanceArn
+      );
 
       await sleep(300);
     }

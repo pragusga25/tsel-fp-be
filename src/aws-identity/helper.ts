@@ -1012,13 +1012,14 @@ export const listAccountAssignments = async (): Promise<
   return data;
 };
 
-export const listGroups = async () => {
-  const { identityStoreId } = await getIdentityInstanceOrThrow();
+export const listGroups = async (identityStoreId?: string | null) => {
+  const theIdentityStoreId =
+    identityStoreId ?? (await getIdentityInstanceOrThrow()).identityStoreId;
 
   const groups: Group[] = [];
   const { Groups, NextToken } = await identityStore.send(
     new ListGroupsCommand({
-      IdentityStoreId: identityStoreId,
+      IdentityStoreId: theIdentityStoreId,
       MaxResults: 99,
     })
   );
@@ -1032,7 +1033,7 @@ export const listGroups = async () => {
   while (nextToken) {
     const { Groups, NextToken } = await identityStore.send(
       new ListGroupsCommand({
-        IdentityStoreId: identityStoreId,
+        IdentityStoreId: theIdentityStoreId,
         NextToken: nextToken,
       })
     );
@@ -1051,13 +1052,14 @@ export const listGroups = async () => {
   }));
 };
 
-export const listUsers = async () => {
-  const { identityStoreId } = await getIdentityInstanceOrThrow();
+export const listUsers = async (identityStoreId?: string | null) => {
+  const theIdentityStoreId =
+    identityStoreId ?? (await getIdentityInstanceOrThrow()).identityStoreId;
 
   const users: User[] = [];
   const { Users, NextToken } = await identityStore.send(
     new ListUsersCommand({
-      IdentityStoreId: identityStoreId,
+      IdentityStoreId: theIdentityStoreId,
     })
   );
 
@@ -1070,7 +1072,7 @@ export const listUsers = async () => {
   while (nextToken) {
     const { Users, NextToken } = await identityStore.send(
       new ListUsersCommand({
-        IdentityStoreId: identityStoreId,
+        IdentityStoreId: theIdentityStoreId,
         NextToken: nextToken,
       })
     );
@@ -1445,14 +1447,17 @@ type CreateAccountAssignmentData = {
 };
 
 export const createAccountAssignment = async (
-  data: CreateAccountAssignmentData
+  data: CreateAccountAssignmentData,
+  instanceArn?: string | null
 ) => {
-  const { instanceArn } = await getIdentityInstanceOrThrow();
+  // const { instanceArn } = await getIdentityInstanceOrThrow();
+  const theInstanceArn =
+    instanceArn ?? (await getIdentityInstanceOrThrow()).instanceArn;
   const { principalId, principalType, permissionSetArn, awsAccountId } = data;
 
   const { AccountAssignmentCreationStatus } = await ssoAdmin.send(
     new CreateAccountAssignmentCommand({
-      InstanceArn: instanceArn,
+      InstanceArn: theInstanceArn,
       PermissionSetArn: permissionSetArn,
       PrincipalId: principalId,
       PrincipalType: principalType,
@@ -1470,14 +1475,16 @@ export const createAccountAssignment = async (
 
 type DeleteAccountAssignmentData = CreateAccountAssignmentData;
 export const deleteAccountAssignment = async (
-  data: DeleteAccountAssignmentData
+  data: DeleteAccountAssignmentData,
+  instanceArn?: string | null
 ) => {
-  const { instanceArn } = await getIdentityInstanceOrThrow();
+  const theInstanceArn =
+    instanceArn ?? (await getIdentityInstanceOrThrow()).instanceArn;
   const { principalId, principalType, permissionSetArn, awsAccountId } = data;
 
   const { AccountAssignmentDeletionStatus } = await ssoAdmin.send(
     new DeleteAccountAssignmentCommand({
-      InstanceArn: instanceArn,
+      InstanceArn: theInstanceArn,
       PermissionSetArn: permissionSetArn,
       PrincipalId: principalId,
       PrincipalType: principalType,

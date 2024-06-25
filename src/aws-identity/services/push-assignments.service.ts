@@ -18,6 +18,8 @@ export const pushAssignmentsService = async () => {
     ]);
   }
 
+  const identity = await db.identityInstance.findFirst();
+
   const awsAssignments = await listAccountAssignmentsv2();
 
   const dbKeys = dbAssignments.map(({ principalId, awsAccountId }) => {
@@ -67,12 +69,15 @@ export const pushAssignmentsService = async () => {
         continue;
       }
 
-      await deleteAccountAssignment({
-        permissionSetArn: psa,
-        principalId: awsAssignmentFiltered.principalId,
-        principalType: awsAssignmentFiltered.principalType,
-        awsAccountId: awsAssignmentFiltered.awsAccountId!,
-      });
+      await deleteAccountAssignment(
+        {
+          permissionSetArn: psa,
+          principalId: awsAssignmentFiltered.principalId,
+          principalType: awsAssignmentFiltered.principalType,
+          awsAccountId: awsAssignmentFiltered.awsAccountId!,
+        },
+        identity?.instanceArn
+      );
 
       await sleep(500);
     }
@@ -90,12 +95,15 @@ export const pushAssignmentsService = async () => {
         continue;
       }
 
-      await createAccountAssignment({
-        permissionSetArn: psa,
-        principalId: dbAssignment.principalId,
-        principalType: dbAssignment.principalType,
-        awsAccountId: dbAssignment.awsAccountId,
-      });
+      await createAccountAssignment(
+        {
+          permissionSetArn: psa,
+          principalId: dbAssignment.principalId,
+          principalType: dbAssignment.principalType,
+          awsAccountId: dbAssignment.awsAccountId,
+        },
+        identity?.instanceArn
+      );
       await sleep(500);
     }
   }

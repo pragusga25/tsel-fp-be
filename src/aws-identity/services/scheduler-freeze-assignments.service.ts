@@ -44,6 +44,7 @@ export const schedulerFreezeAssignmentsService = async (
   }
 
   const doTheJob = async () => {
+    const identity = await db.identityInstance.findFirst();
     let awsAssignmentsPromise = await listAccountAssignmentsv2();
 
     if (awsAssignmentsPromise.length === 0) {
@@ -96,12 +97,15 @@ export const schedulerFreezeAssignmentsService = async (
           continue;
         }
 
-        await deleteAccountAssignment({
-          principalId: awsAssignment.principalId,
-          principalType: awsAssignment.principalType,
-          permissionSetArn: permissionSetArn,
-          awsAccountId: awsAssignment.awsAccountId!,
-        });
+        await deleteAccountAssignment(
+          {
+            principalId: awsAssignment.principalId,
+            principalType: awsAssignment.principalType,
+            permissionSetArn: permissionSetArn,
+            awsAccountId: awsAssignment.awsAccountId!,
+          },
+          identity?.instanceArn
+        );
 
         await sleep(300);
       }
@@ -113,12 +117,15 @@ export const schedulerFreezeAssignmentsService = async (
           continue;
         }
 
-        await createAccountAssignment({
-          principalId: awsAssignment.principalId,
-          principalType: awsAssignment.principalType,
-          permissionSetArn: permissionSetArnFreeze,
-          awsAccountId: awsAssignment.awsAccountId!,
-        });
+        await createAccountAssignment(
+          {
+            principalId: awsAssignment.principalId,
+            principalType: awsAssignment.principalType,
+            permissionSetArn: permissionSetArnFreeze,
+            awsAccountId: awsAssignment.awsAccountId!,
+          },
+          identity?.instanceArn
+        );
 
         await sleep(300);
       }
