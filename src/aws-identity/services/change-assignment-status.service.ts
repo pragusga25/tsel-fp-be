@@ -27,7 +27,7 @@ export const changeAssignmentStatusService = async (
   cb?: (data: Data, trx: Trx) => unknown
 ) => {
   await db.$transaction(async (trx) => {
-    const currentData = await db.assignmentRequest.findUnique({
+    const currentData = await trx.assignmentRequest.findUnique({
       where: {
         id,
       },
@@ -48,8 +48,15 @@ export const changeAssignmentStatusService = async (
       ]);
     }
 
-    const permissionSetsInMapPromise = describeAllPermissionSetsInMap();
-    const detailGroupPromise = describeGroup(currentData.principalId);
+    const identity = await trx.identityInstance.findFirst();
+
+    const permissionSetsInMapPromise = describeAllPermissionSetsInMap(
+      identity?.instanceArn
+    );
+    const detailGroupPromise = describeGroup(
+      currentData.principalId,
+      identity?.identityStoreId
+    );
     const awsAccountPromise = describeAwsAccount(currentData.awsAccountId);
 
     const [permissionSetsInMap, detailGroup, awsAccount] = await Promise.all([
