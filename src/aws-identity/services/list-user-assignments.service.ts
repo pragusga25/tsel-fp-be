@@ -65,16 +65,21 @@ export const listUserAssignmentsService = async () => {
       assignment.awsAccountName
   );
 
-  result.sort((a, b) => {
-    const aName = a.principalDisplayName?.toLowerCase();
-    const bName = b.principalDisplayName?.toLowerCase();
+  result.sort(
+    (
+      a: { principalDisplayName?: string | null },
+      b: { principalDisplayName?: string | null }
+    ) => {
+      const aName = a.principalDisplayName?.toLowerCase();
+      const bName = b.principalDisplayName?.toLowerCase();
 
-    if (aName && bName) {
-      return aName.localeCompare(bName);
+      if (aName && bName) {
+        return aName.localeCompare(bName);
+      }
+
+      return 0;
     }
-
-    return 0;
-  });
+  );
 
   return { result };
 };

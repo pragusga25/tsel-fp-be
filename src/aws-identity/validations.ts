@@ -157,7 +157,7 @@ export const CreateFreezeTimeSchema = transform(
         minLength(5, 'Name must be at least 5 characters.'),
         maxLength(32, 'Name maximum is 32 characters.'),
         regex(
-          /[0-9a-zA-Z-_.]+/,
+          /^[a-zA-Z0-9\-\._]+$/,
           'Name must be alphanumeric and can contain - or _ or .'
         ),
       ]),

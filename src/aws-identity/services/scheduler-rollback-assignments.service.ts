@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { db } from '../../db';
 import { OperationFailedError } from '../errors';
 import { pushAssignmentsService } from './push-assignments.service';
-import { IJwtPayload } from '../../__shared__/interfaces';
 import { createLog } from '../../__shared__/utils';
 
 export const schedulerRollbackAssignmentsService = async (
@@ -28,9 +27,9 @@ export const schedulerRollbackAssignmentsService = async (
     ]);
   }
 
-  if (freezeTime) {
+  if (!freezeTime) {
     throw new OperationFailedError([
-      'There is an active freeze time. Please wait until the freeze time ends.',
+      `No freeze time found with name ${name}. Please create freeze time first.`,
     ]);
   }
 
