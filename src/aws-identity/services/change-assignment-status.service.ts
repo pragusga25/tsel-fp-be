@@ -24,7 +24,14 @@ export const changeAssignmentStatusService = async (
   responderId: string,
   id: string,
   status: AssignmentRequestStatus,
-  cb?: (data: Data, trx: Trx) => unknown
+  cb?: (
+    data: Data,
+    trx: Trx,
+    identity?: {
+      identityStoreId?: string | null;
+      instanceArn?: string | null;
+    } | null
+  ) => unknown
 ) => {
   await db.$transaction(async (trx) => {
     const currentData = await trx.assignmentRequest.findUnique({
@@ -95,7 +102,7 @@ export const changeAssignmentStatusService = async (
       },
     });
 
-    cb?.(res, trx);
+    cb?.(res, trx, identity);
 
     const permissionSetsName = res.permissionSetArns.map((ps) => {
       const detail = permissionSetsInMap.get(ps)?.name ?? ps;

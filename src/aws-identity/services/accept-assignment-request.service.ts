@@ -14,8 +14,10 @@ export const acceptAssignmentRequestService = async (
     responderId,
     id,
     AssignmentRequestStatus.ACCEPTED,
-    async ({ permissionSetArns: psa, ...rest }, trx) => {
-      const permissionSetArnssSet = await listPermissionSetArnsInSet();
+    async ({ permissionSetArns: psa, ...rest }, trx, identity) => {
+      const permissionSetArnssSet = await listPermissionSetArnsInSet(
+        identity?.instanceArn
+      );
       const permissionSetArns = psa.filter((permissionSetArn) =>
         permissionSetArnssSet.has(permissionSetArn)
       );
@@ -31,16 +33,22 @@ export const acceptAssignmentRequestService = async (
       const accountAssignmentPromises = permissionSetArns.map(
         (permissionSetArn) => {
           if (operation === AssignmentOperation.ATTACH) {
-            return createAccountAssignment({
-              permissionSetArn,
-              ...rest,
-            });
+            return createAccountAssignment(
+              {
+                permissionSetArn,
+                ...rest,
+              },
+              identity?.instanceArn
+            );
           }
 
-          deleteAccountAssignment({
-            permissionSetArn,
-            ...rest,
-          });
+          return deleteAccountAssignment(
+            {
+              permissionSetArn,
+              ...rest,
+            },
+            identity?.instanceArn
+          );
         }
       );
 
