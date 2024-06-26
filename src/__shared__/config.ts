@@ -34,7 +34,6 @@ const envVarsSchema = object({
   AWS_SES_SENDER_EMAIL: optional(string([email()])),
   SENDGRID_API_KEY: optional(string()),
   SENDGRID_SENDER_EMAIL: optional(string()),
-  PROTOCOL: optional(picklist(['http', 'https']), 'http'),
 });
 
 export const config = parse(envVarsSchema, process.env);

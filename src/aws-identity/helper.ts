@@ -1452,7 +1452,9 @@ export const listAccountAssignmentsv2 = async (
 
   const describePermissionSetsPromises = Array.from(
     uniquePermissionSetArns
-  ).map((permissionSetArn) => describePermissionSet(permissionSetArn));
+  ).map((permissionSetArn) =>
+    describePermissionSet(permissionSetArn, false, opts?.instanceArn)
+  );
 
   const permissionSets = await Promise.all(describePermissionSetsPromises);
 

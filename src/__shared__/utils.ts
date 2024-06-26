@@ -52,7 +52,7 @@ export class HttpUtil {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       sameSite: 'none',
-      secure: config.PROTOCOL === 'https',
+      secure: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
@@ -62,7 +62,7 @@ export class HttpUtil {
     res.cookie('refreshToken', '', {
       httpOnly: true,
       sameSite: 'none',
-      secure: config.PROTOCOL === 'https',
+      secure: true,
       maxAge: 0,
       path: '/',
     });
